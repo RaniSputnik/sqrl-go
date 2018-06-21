@@ -10,6 +10,7 @@ import (
 	// the sqrl:// URL and instead turns it into a hash.
 	"text/template"
 
+	sqrl "github.com/RaniSputnik/sqrl-go"
 	"github.com/gorilla/mux"
 	qrcode "github.com/skip2/go-qrcode"
 )
@@ -26,7 +27,7 @@ func main() {
 
 	router := mux.NewRouter()
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		loginURL := createLoginURL("localhost:8080")
+		loginURL := createLoginURL(r, "localhost:8080")
 		qrCode, _ := createQRCode(loginURL) // TODO handle error case
 
 		data := struct {
@@ -51,8 +52,8 @@ func main() {
 	log.Fatal(server.ListenAndServe())
 }
 
-func createLoginURL(domain string) string {
-	nonce := "TODO"
+func createLoginURL(r *http.Request, domain string) string {
+	nonce := sqrl.Nut(r)
 	return fmt.Sprintf("sqrl://%s/sqrl?%s", domain, nonce)
 }
 
