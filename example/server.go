@@ -11,6 +11,7 @@ import (
 	"text/template"
 
 	sqrl "github.com/RaniSputnik/sqrl-go"
+	sqrlhttp "github.com/RaniSputnik/sqrl-go/http"
 	"github.com/gorilla/mux"
 	qrcode "github.com/skip2/go-qrcode"
 )
@@ -23,10 +24,24 @@ const indexTemplateString = `
 func main() {
 	port := 8080
 
+	router := mux.NewRouter()
+	router.HandleFunc("/", handleIssueChallenge()).Methods(http.MethodGet)
+	router.Handle("/sqrl", sqrlhttp.Authenticate()).Methods(http.MethodPost)
+
+	server := http.Server{
+		Addr:    fmt.Sprintf(":%d", port),
+		Handler: router,
+	}
+
+	log.Printf("Server now listening on port: %d", port)
+	log.Fatal(server.ListenAndServe())
+}
+
+// TODO move to SQRL http package
+func handleIssueChallenge() http.HandlerFunc {
 	indexTemplate := template.Must(template.New("index").Parse(indexTemplateString))
 
-	router := mux.NewRouter()
-	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		loginURL := createLoginURL(r, "localhost:8080")
 		qrCode, _ := createQRCode(loginURL) // TODO handle error case
 
@@ -39,17 +54,7 @@ func main() {
 		}
 
 		indexTemplate.Execute(w, data)
-	})
-
-	// TODO handle callback URL
-
-	server := http.Server{
-		Addr:    fmt.Sprintf(":%d", port),
-		Handler: router,
 	}
-
-	log.Printf("Server now listening on port: %d", port)
-	log.Fatal(server.ListenAndServe())
 }
 
 func createLoginURL(r *http.Request, domain string) string {
