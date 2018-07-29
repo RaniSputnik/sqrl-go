@@ -1,4 +1,4 @@
-package http
+package sqlhttp
 
 const (
 	// V1 is the value of the User-Agent field

@@ -1,8 +1,8 @@
 package sqrl
 
 import (
-	"encoding/base64"
 	"errors"
+	"strings"
 )
 
 // ClientMsg is used to represent the values
@@ -13,8 +13,26 @@ import (
 type ClientMsg struct {
 	Ver []string
 	Cmd Cmd
+	Idk Identity
 
 	Opt []Opt
+}
+
+// Encode writes the client message to a string
+// ready for transmission to a SQRL server.
+func (m *ClientMsg) Encode() (string, error) {
+	if len(m.Ver) == 0 || m.Cmd == "" || m.Idk == "" {
+		return "", errors.New("incomplete client message")
+	}
+
+	vals := []string{
+		"ver=" + strings.Join(m.Ver, ","),
+		"cmd=" + string(m.Cmd),
+		"idk=" + string(m.Idk),
+
+		"", // Must end with a final newline
+	}
+	return Base64.EncodeToString([]byte(strings.Join(vals, "\n"))), nil
 }
 
 // HasOpt returns true/false whether the given option was provided.
@@ -31,7 +49,7 @@ func (m ClientMsg) HasOpt(query Opt) bool {
 }
 
 func ParseClient(raw string) (ClientMsg, error) {
-	_, err := base64.StdEncoding.DecodeString(raw)
+	_, err := Base64.DecodeString(raw)
 	if err != nil {
 		return ClientMsg{}, err
 	}

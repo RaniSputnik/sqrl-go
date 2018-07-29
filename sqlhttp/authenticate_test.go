@@ -1,4 +1,4 @@
-package http_test
+package sqlhttp_test
 
 import (
 	"encoding/base64"
@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	sqlhttp "github.com/RaniSputnik/sqrl-go/http"
+	"github.com/RaniSputnik/sqrl-go/sqlhttp"
 )
 
 func TestAuthenticate(t *testing.T) {

@@ -1,7 +1,15 @@
 package sqrl
 
-// User represents a users site specific public key.
-type User string
+import "encoding/base64"
+
+// Identity represents a users site specific public key,
+// base64 encoded for transmission.
+type Identity string
+
+// Signature is a base64 signature sent by the
+// client. The signature can be verified using the
+// corresponding identity.
+type Signature string
 
 const (
 	// V1 is the version 1 string for the SQRL protocol.
@@ -71,3 +79,12 @@ const (
 	OptCPS      = Opt("cps")
 	OptSUK      = Opt("suk")
 )
+
+// Base64 is the encoder that should be used when
+// encoding keys, signatures and other payloads for
+// transmission.
+//
+// It is the standard URL encoding with no padding to
+// avoid confusion around the meaning of the = when
+// form encoding SQRL requests.
+var Base64 = base64.URLEncoding.WithPadding(base64.NoPadding)

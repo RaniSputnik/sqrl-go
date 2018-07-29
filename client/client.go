@@ -2,7 +2,6 @@ package client
 
 import (
 	"crypto"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -32,33 +31,21 @@ func Login(uri string) error {
 	pub := keypair.PublicKey()
 	priv := keypair.PrivateKey()
 
-	parsed, err := url.Parse(uri)
-	if err != nil {
-		return ErrUriInvalid
-	}
-
-	if parsed.Scheme != sqrl.Scheme {
-		return ErrUriInvalid
-	}
-
-	parsed.Scheme = "https"
-
-	idk := b64(string(pub))
-	clientParameters := QueryCmd(idk)
-
-	vals := strings.Split(uri, "?")
-	vals[1] = url.QueryEscape(vals[1])
-	encodedURI := strings.Join(vals, "?")
-	fmt.Printf("Encoded server URI:\nFrom '%s'\nTo   '%s'\n", uri, encodedURI)
-	serverParameters := b64(encodedURI)
-
-	ids, err := sign(clientParameters, serverParameters, priv)
+	endpoint, err := getEndpoint(uri)
 	if err != nil {
 		return err
 	}
-	if !verify(idk, ids, clientParameters+serverParameters) {
-		fmt.Printf("Uh oh, verification failed... wonder why...")
-		return errors.New("Sanity check failed")
+
+	idk := sqrl.Base64.EncodeToString(pub)
+
+	clientParameters := QueryCmd(idk)
+	serverParameters := sqrl.Base64.EncodeToString([]byte(uri))
+
+	signMe := clientParameters + serverParameters
+
+	ids, err := sign(signMe, priv)
+	if err != nil {
+		return err
 	}
 
 	form := []string{
@@ -68,7 +55,7 @@ func Login(uri string) error {
 	}
 	body := strings.NewReader(strings.Join(form, "&"))
 
-	_, err = HttpClient.Post(parsed.String(), "application/x-www-form-urlencoded", body)
+	_, err = HttpClient.Post(endpoint, "application/x-www-form-urlencoded", body)
 	if err != nil {
 		return err
 	}
@@ -76,28 +63,31 @@ func Login(uri string) error {
 	return nil
 }
 
-func sign(client, server string, privateKey ed25519.PrivateKey) (string, error) {
-	valueToSign := client + server
-	fmt.Printf("Signing: '%s'\n", valueToSign)
+// getEndpoint transforms a sqrl:// URL to a https:// URL
+func getEndpoint(uri string) (endpoint string, err error) {
+	parsed, err := url.Parse(uri)
+	if err != nil {
+		return "", ErrUriInvalid
+	}
+	if parsed.Scheme != sqrl.Scheme {
+		return "", ErrUriInvalid
+	}
 
-	sig, err := privateKey.Sign(nil, []byte(valueToSign), crypto.Hash(0))
+	parsed.Scheme = "https"
+	return parsed.String(), nil
+}
+
+// sign accepts a payload to sign with the given private key
+//
+// The payload should be the value of the 'server' parameter
+// appended to the value of the 'client' parameter.
+func sign(payload string, privateKey ed25519.PrivateKey) (string, error) {
+	fmt.Printf("Signing: '%s'\n", payload)
+	sig, err := privateKey.Sign(nil, []byte(payload), crypto.Hash(0))
 	if err != nil {
 		return "", err
 	}
-	result := b64(string(sig))
+	result := sqrl.Base64.EncodeToString(sig)
 	fmt.Printf("Signature: '%s'\n", result)
 	return result, nil
-}
-
-func verify(idk, ids, params string) bool {
-	decoder := base64.URLEncoding.WithPadding(base64.NoPadding)
-	idkDecoded, err1 := decoder.DecodeString(idk)
-	idsDecoded, err2 := decoder.DecodeString(ids)
-	if err1 != nil || err2 != nil {
-		fmt.Printf("Failed to verify:\ninput='%s', err='%v'\ninput='%s', err2='%v'\n",
-			idk, err1, ids, err2)
-		return false
-	}
-	pub := ed25519.PublicKey([]byte(idkDecoded))
-	return ed25519.Verify(pub, []byte(params), idsDecoded)
 }

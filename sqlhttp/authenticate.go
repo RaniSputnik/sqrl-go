@@ -1,10 +1,8 @@
-package http
+package sqlhttp
 
 import (
-	"encoding/base64"
 	"log"
 	"net/http"
-	"strings"
 
 	"github.com/RaniSputnik/sqrl-go"
 )
@@ -32,18 +30,13 @@ func Authenticate() http.Handler {
 			return
 		}
 
-		server, errs := b64decode(r.Form.Get("server"))
-		client, errc := b64decode(r.Form.Get("client"))
-		if errc != nil || errs != nil || client == "" || server == "" {
+		server, errs := sqrl.Base64.DecodeString(r.Form.Get("server"))
+		client, errc := sqrl.Base64.DecodeString(r.Form.Get("client"))
+		if errc != nil || errs != nil || len(client) == 0 || len(server) == 0 {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
-		clientVals := strings.Split(client, "\n")
+		//clientVals := strings.Split(client, "\n")
 	})
-}
-
-func b64decode(in string) (string, error) {
-	got, err := base64.StdEncoding.DecodeString(in)
-	return string(got), err
 }
