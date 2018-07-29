@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 )
 
 // ServerMsg is used to represent the values
@@ -27,27 +26,9 @@ type ServerMsg struct {
 // ParseServer decodes the base64 encoded server
 // parameter into the component parts.
 func ParseServer(raw string) (*ServerMsg, error) {
-	bytes, err := Base64.DecodeString(raw)
-	if err != nil {
-		return nil, err
-	}
-
-	form := strings.Split(string(bytes), "\r\n") // TODO: Move newline char to const
-	if len(form) < 4 {
+	vals, err := parseMsg(raw)
+	if len(vals) < 4 {
 		return nil, errors.New("missing one or more required parameters (ver,nut,tif,qry)")
-	}
-
-	vals := map[string]string{}
-	for _, keyval := range form {
-		if keyval == "" {
-			continue
-		}
-
-		pair := strings.SplitN(keyval, "=", 2)
-		if len(pair) < 2 {
-			return nil, fmt.Errorf("invalid value '%s', should be in the form: key=value\\r\\n", keyval)
-		}
-		vals[pair[0]] = pair[1]
 	}
 
 	tifstr := vals["tif"]
@@ -58,7 +39,7 @@ func ParseServer(raw string) (*ServerMsg, error) {
 
 	// TODO: Check supported version before parsing
 	return &ServerMsg{
-		Ver: strings.Split(vals["ver"], ","),
+		Ver: parseVer(vals["ver"]),
 		Nut: vals["nut"],
 		Tif: TIF(tif),
 		Qry: vals["qry"],

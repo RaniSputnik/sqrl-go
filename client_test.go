@@ -1,15 +1,15 @@
 package sqrl_test
 
 import (
-	"encoding/base64"
 	"testing"
 
 	sqrl "github.com/RaniSputnik/sqrl-go"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestClientEncode(t *testing.T) {
-	validIdk := sqrl.Identity("Vl4KVVRoG0C8v1VP0UEUNK2z_SYhNVYBXdoarhMljzQ")
+const validIdk = sqrl.Identity("Vl4KVVRoG0C8v1VP0UEUNK2z_SYhNVYBXdoarhMljzQ")
 
+func TestClientEncode(t *testing.T) {
 	t.Run("FailsToEncodeInvalidClientMessages", func(t *testing.T) {
 		cases := []struct {
 			Name  string
@@ -92,44 +92,21 @@ func TestClientParse(t *testing.T) {
 			Expected sqrl.ClientMsg
 		}{
 			{
-				Input: "ver=1\ncmd=query",
+				Input: "dmVyPTEKY21kPXF1ZXJ5Cmlkaz1WbDRLVlZSb0cwQzh2MVZQMFVFVU5LMnpfU1loTlZZQlhkb2FyaE1sanpRCg",
 				Expected: sqrl.ClientMsg{
 					Ver: []string{sqrl.V1},
 					Cmd: sqrl.CmdQuery,
+					Idk: validIdk,
 				},
 			},
 		}
 
 		for _, test := range cases {
-			expect := test.Expected
-
-			got, err := sqrl.ParseClient(b64(test.Input))
-			if err != nil {
-				t.Errorf("Expected no error, got: %v", err)
-			}
-			if expected := len(expect.Ver); expected != len(got.Ver) {
-				t.Errorf("Expected: %d versions, got: %d", expected, len(got.Ver))
-			} else {
-				for i := 0; i < len(expect.Ver); i++ {
-					if expect.Ver[i] != got.Ver[i] {
-						// FIXME: Reinvestigate these tests
-						//t.Errorf("Expected version at pos %d to be: %s, got: %s")
-					}
-				}
-			}
-
-			if expect.Cmd != got.Cmd {
-				t.Errorf("Expected cmd: %s, got: %s", expect.Cmd, got.Cmd)
+			got, err := sqrl.ParseClient(test.Input)
+			assert.NoError(t, err)
+			if assert.NotNil(t, got) {
+				assert.Equal(t, test.Expected, *got)
 			}
 		}
 	})
-}
-
-func b64(in string) string {
-	return base64.URLEncoding.WithPadding(base64.NoPadding).EncodeToString([]byte(in))
-}
-
-func clientMessagesEqual(expected sqrl.ClientMsg, got sqrl.ClientMsg) bool {
-
-	return true
 }

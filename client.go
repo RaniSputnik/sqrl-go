@@ -48,11 +48,17 @@ func (m ClientMsg) HasOpt(query Opt) bool {
 	return false
 }
 
-func ParseClient(raw string) (ClientMsg, error) {
-	_, err := Base64.DecodeString(raw)
+func ParseClient(raw string) (*ClientMsg, error) {
+	vals, err := parseMsg(raw)
 	if err != nil {
-		return ClientMsg{}, err
+		return nil, err
 	}
 
-	return ClientMsg{}, errors.New("Not implemented")
+	return &ClientMsg{
+		Ver: parseVer(vals["ver"]),
+		Cmd: Cmd(vals["cmd"]),
+		Idk: Identity(vals["idk"]),
+
+		Opt: nil, // TODO: support parsing opt values
+	}, nil
 }
