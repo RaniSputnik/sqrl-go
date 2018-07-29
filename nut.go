@@ -4,7 +4,6 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"encoding/hex"
 	"io"
 	"net"
 	"net/http"
@@ -20,6 +19,8 @@ var nuts uint32
 //
 // The Nut (think nonce) is guaranteed to be unique
 // and unpredictable to prevent replay attacks.
+//
+// TODO Nut should be a type?
 func Nut(r *http.Request) string {
 	//  32 bits: user's connection IP address if secured, 0.0.0.0 if non-secured.
 	//  32 bits: UNIX-time timestamp incrementing once per second.
@@ -94,8 +95,7 @@ func Nut(r *http.Request) string {
 		panic(err.Error())
 	}
 
-	// TODO should we base64 encode here instead?
-	return hex.EncodeToString(aesgcm.Seal(nil, nonce, nut, nil))
+	return Base64.EncodeToString(aesgcm.Seal(nil, nonce, nut, nil))
 }
 
 func parseIP(remoteAddr string) net.IP {

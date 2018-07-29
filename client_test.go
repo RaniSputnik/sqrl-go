@@ -7,7 +7,7 @@ import (
 	sqrl "github.com/RaniSputnik/sqrl-go"
 )
 
-func TestEncode(t *testing.T) {
+func TestClientEncode(t *testing.T) {
 	validIdk := sqrl.Identity("Vl4KVVRoG0C8v1VP0UEUNK2z_SYhNVYBXdoarhMljzQ")
 
 	t.Run("FailsToEncodeInvalidClientMessages", func(t *testing.T) {
@@ -80,7 +80,7 @@ func TestEncode(t *testing.T) {
 	})
 }
 
-func TestParseClient(t *testing.T) {
+func TestClientParse(t *testing.T) {
 
 	t.Run("ReturnsErrorWhenClientStringInvalid", func(t *testing.T) {
 
