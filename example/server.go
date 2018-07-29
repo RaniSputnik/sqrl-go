@@ -11,7 +11,7 @@ import (
 	"text/template"
 
 	sqrl "github.com/RaniSputnik/sqrl-go"
-	sqrlhttp "github.com/RaniSputnik/sqrl-go/sqlhttp"
+	"github.com/RaniSputnik/sqrl-go/sqrlhttp"
 	"github.com/gorilla/mux"
 	qrcode "github.com/skip2/go-qrcode"
 )

@@ -1,4 +1,4 @@
-package sqlhttp
+package sqrlhttp
 
 import (
 	"log"

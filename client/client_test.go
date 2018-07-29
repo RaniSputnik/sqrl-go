@@ -9,6 +9,8 @@ import (
 	"github.com/RaniSputnik/sqrl-go/client"
 )
 
+const serverResponseKnownUser = "dmVyPTENCm51dD01aHFaS3VIeXE1dDZ5Mmlmb1czd1B3DQp0aWY9NQ0KcXJ5PS9zcXJsP251dD01aHFaS3VIeXE1dDZ5Mmlmb1czd1B3DQo"
+
 func TestLogin(t *testing.T) {
 	t.Run("RejectsEmptyUrl", func(t *testing.T) {
 		invalidUri := ":"
@@ -23,6 +25,7 @@ func TestLogin(t *testing.T) {
 		var receivedRequest *http.Request
 		s := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			receivedRequest = r
+			w.Write([]byte(serverResponseKnownUser))
 		}))
 		defer s.Close()
 		client.HttpClient = s.Client()

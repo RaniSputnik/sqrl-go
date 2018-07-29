@@ -12,7 +12,7 @@ import (
 type ServerMsg struct {
 	Ver []string
 	Nut string // TODO: type Nut
-	Tif int
+	Tif TIF
 	Qry string
 
 	// TODO: url - for any command other than query
@@ -60,7 +60,7 @@ func ParseServer(raw string) (*ServerMsg, error) {
 	return &ServerMsg{
 		Ver: strings.Split(vals["ver"], ","),
 		Nut: vals["nut"],
-		Tif: tif,
+		Tif: TIF(tif),
 		Qry: vals["qry"],
 	}, nil
 }

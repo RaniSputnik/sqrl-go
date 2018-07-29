@@ -1,4 +1,4 @@
-package sqlhttp_test
+package sqrlhttp_test
 
 import (
 	"encoding/base64"
@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RaniSputnik/sqrl-go/sqlhttp"
+	"github.com/RaniSputnik/sqrl-go/sqrlhttp"
 )
 
 func TestAuthenticate(t *testing.T) {
@@ -16,7 +16,7 @@ func TestAuthenticate(t *testing.T) {
 	const validServer = "whatever"
 
 	t.Run("ReturnsBadRequestWhenUserAgentNotProvided", func(t *testing.T) {
-		h := sqlhttp.Authenticate()
+		h := sqrlhttp.Authenticate()
 		w, r := setupAuthenticate(emptyBody)
 		r.Header.Del("User-Agent")
 
@@ -28,7 +28,7 @@ func TestAuthenticate(t *testing.T) {
 	})
 
 	t.Run("ReturnsBadRequestWhenUserAgentIsNotSQRL1", func(t *testing.T) {
-		h := sqlhttp.Authenticate()
+		h := sqrlhttp.Authenticate()
 		w, r := setupAuthenticate(emptyBody)
 		r.Header.Set("User-Agent", "SQRL/6")
 
@@ -40,7 +40,7 @@ func TestAuthenticate(t *testing.T) {
 	})
 
 	t.Run("ReturnsBadRequestWhenContentTypeIsNotFormEncoded", func(t *testing.T) {
-		h := sqlhttp.Authenticate()
+		h := sqrlhttp.Authenticate()
 		w, r := setupAuthenticate(emptyBody)
 		r.Header.Set("Content-Type", "application/json")
 
@@ -60,7 +60,7 @@ func TestAuthenticate(t *testing.T) {
 	})
 
 	t.Run("ReturnsBadRequestWhenClientParamIsMissing", func(t *testing.T) {
-		h := sqlhttp.Authenticate()
+		h := sqrlhttp.Authenticate()
 		w, r := setupAuthenticate(fmt.Sprintf("server=%s", validServer))
 		h.ServeHTTP(w, r)
 
@@ -81,7 +81,7 @@ func TestAuthenticate(t *testing.T) {
 			{"VerComesSecond", b64("cmd=query\nver=1")},
 		}
 
-		h := sqlhttp.Authenticate()
+		h := sqrlhttp.Authenticate()
 
 		const expected = http.StatusBadRequest
 

@@ -52,9 +52,15 @@ func Login(uri string) error {
 		"server=" + serverParameters,
 		"ids=" + ids,
 	}
-	_, err = do(endpoint, strings.Join(form, "&"))
+	serverMsg, err := do(endpoint, strings.Join(form, "&"))
 	if err != nil {
 		return err
+	}
+
+	if serverMsg.Tif&sqrl.TIFCurrentIDMatch != 0 {
+		fmt.Println("The current user is known! Lets log them in...")
+	} else {
+		fmt.Println("The current user is not yet known to the server.")
 	}
 
 	return nil

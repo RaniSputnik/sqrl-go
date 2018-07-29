@@ -1,3 +1,5 @@
+// +build ignore
+
 package client_test
 
 import (
@@ -6,24 +8,20 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/RaniSputnik/sqrl-go/client"
 )
 
-const userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:61.0) Gecko/20100101 Firefox/61.0"
-
-//const cookies = "pag=zngakt1fkp0es; pcss=3wmopr5i4kblq; pico=3hsz2fslhls52; tpag=zngakt1fkp0es; sqrluser=2oqdgwdprpi5o; tcss=3wmopr5i4kblq; tico=3hsz2fslhls52"
 const cookies = "ppag=sq5ln315sn2uw; pcss=iknrukwyhaf5u; pico=3thoa0rforkor; sqrluser=f2uheyqefkf4k; tpag=sq5ln315sn2uw; tcss=iknrukwyhaf5u; tico=3thoa0rforkor"
 
-// TOOD gorace - keep getting 'Post https://www.grc.com/sqrl?nut=XXX: EOF' error
-// But when I debug the error does not occur. Presume race condition.
 func TestLiveServer(t *testing.T) {
+	httpClient := &http.Client{Timeout: time.Second * 5}
 	req, err := http.NewRequest(http.MethodGet, "https://www.grc.com/sqrl/diag.htm", nil)
 	fatal(t, err)
-	req.Header.Add("User-Agent", userAgent)
 	req.Header.Add("Cookie", cookies)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpClient.Do(req)
 	fatal(t, err)
 	defer resp.Body.Close()
 
@@ -35,6 +33,7 @@ func TestLiveServer(t *testing.T) {
 		t.Fatalf("Challenge is in unexpected format")
 	}
 
+	waitForGRCWaitLimit()
 	expectErr(t, nil, client.Login(challenge))
 }
 
@@ -54,9 +53,17 @@ func extractSQRLChallenge(body io.Reader) (string, error) {
 	left := strings.Index(bodyString, searchString)
 	challenge := bodyString[left:]
 	right := strings.Index(challenge, "\"")
+	// Wierd bug in GRC's server
+	if right2 := strings.Index(challenge, "<"); right2 < right {
+		right = right2
+	}
 	challenge = challenge[:right]
 
 	return challenge, nil
+}
+
+func waitForGRCWaitLimit() {
+	time.Sleep(1 * time.Second)
 }
 
 func fatal(t *testing.T, err error) {
