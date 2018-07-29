@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -51,14 +52,27 @@ func Login(uri string) error {
 		"server=" + serverParameters,
 		"ids=" + ids,
 	}
-	body := strings.NewReader(strings.Join(form, "&"))
-
-	_, err = HttpClient.Post(endpoint, "application/x-www-form-urlencoded", body)
+	_, err = do(endpoint, strings.Join(form, "&"))
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func do(uri string, form string) (*sqrl.ServerMsg, error) {
+	res, err := HttpClient.Post(uri, "application/x-www-form-urlencoded", strings.NewReader(form))
+	if err != nil {
+		return nil, err
+	}
+
+	gotBody, err := ioutil.ReadAll(res.Body)
+	res.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	return sqrl.ParseServer(string(gotBody))
 }
 
 // getEndpoint transforms a sqrl:// URL to a https:// URL
