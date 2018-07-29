@@ -11,7 +11,7 @@ import (
 	"time"
 
 	sqrl "github.com/RaniSputnik/sqrl-go"
-	"github.com/cretz/bine/torutil/ed25519"
+	"golang.org/x/crypto/ed25519"
 )
 
 var (
@@ -24,19 +24,17 @@ var HttpClient = &http.Client{
 
 func Login(uri string) error {
 	var rand io.Reader
-	keypair, err := ed25519.GenerateKey(rand)
+	pub, priv, err := ed25519.GenerateKey(rand)
 	if err != nil {
 		return err
 	}
-	pub := keypair.PublicKey()
-	priv := keypair.PrivateKey()
 
 	endpoint, err := getEndpoint(uri)
 	if err != nil {
 		return err
 	}
 
-	idk := sqrl.Base64.EncodeToString(pub)
+	idk := sqrl.Identity(sqrl.Base64.EncodeToString(pub))
 
 	clientParameters := QueryCmd(idk)
 	serverParameters := sqrl.Base64.EncodeToString([]byte(uri))
