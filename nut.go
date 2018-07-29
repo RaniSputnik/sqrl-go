@@ -19,7 +19,7 @@ var nuts uint32
 // SQRL client for signing.
 //
 // The Nut (think nonce) is guaranteed to be unique
-// and unpredictable, to aid in making attacks impractical.
+// and unpredictable to prevent replay attacks.
 func Nut(r *http.Request) string {
 	//  32 bits: user's connection IP address if secured, 0.0.0.0 if non-secured.
 	//  32 bits: UNIX-time timestamp incrementing once per second.
