@@ -33,7 +33,7 @@ func (m *ServerMsg) Encode() (string, error) {
 	vals := []string{
 		"ver=" + strings.Join(m.Ver, ","),
 		"nut=" + m.Nut,
-		"tif=" + strconv.Itoa(m.Tif),
+		"tif=" + strconv.Itoa(int(m.Tif)),
 		"qry=" + m.Qry,
 		"", // Must end with a final newline
 	}
