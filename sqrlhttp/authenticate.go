@@ -19,7 +19,7 @@ type clientParams struct {
 
 func Authenticate() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.UserAgent() != V1 || r.Header.Get("Content-Type") != xFormURLEncoded {
+		if r.Header.Get("Content-Type") != xFormURLEncoded {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
