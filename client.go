@@ -32,7 +32,7 @@ func (m *ClientMsg) Encode() (string, error) {
 
 		"", // Must end with a final newline
 	}
-	return Base64.EncodeToString([]byte(strings.Join(vals, "\n"))), nil
+	return Base64.EncodeToString([]byte(strings.Join(vals, "\r\n"))), nil
 }
 
 // HasOpt returns true/false whether the given option was provided.

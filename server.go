@@ -4,11 +4,15 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 // ServerMsg is used to represent the values
 // sent from the server to the client.
 type ServerMsg struct {
+	// TODO: should we remove Ver? Do package
+	// consumers actually need to be able to
+	// set this?
 	Ver []string
 	Nut string // TODO: type Nut
 	Tif TIF
@@ -21,6 +25,19 @@ type ServerMsg struct {
 	// TODO: can - cancellation redirection URL
 
 	// TODO: additional parameters
+}
+
+// Encode writes the server message to a string
+// ready for transmission to the client.
+func (m *ServerMsg) Encode() (string, error) {
+	vals := []string{
+		"ver=" + strings.Join(m.Ver, ","),
+		"nut=" + m.Nut,
+		"tif=" + strconv.Itoa(m.Tif),
+		"qry=" + m.Qry,
+		"", // Must end with a final newline
+	}
+	return Base64.EncodeToString([]byte(strings.Join(vals, "\r\n"))), nil
 }
 
 // ParseServer decodes the base64 encoded server

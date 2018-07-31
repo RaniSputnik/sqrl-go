@@ -63,7 +63,7 @@ func TestClientEncode(t *testing.T) {
 					Cmd: sqrl.CmdQuery,
 					Idk: validIdk,
 				},
-				Expect: "dmVyPTEKY21kPXF1ZXJ5Cmlkaz1WbDRLVlZSb0cwQzh2MVZQMFVFVU5LMnpfU1loTlZZQlhkb2FyaE1sanpRCg",
+				Expect: "dmVyPTENCmNtZD1xdWVyeQ0KaWRrPVZsNEtWVlJvRzBDOHYxVlAwVUVVTksyel9TWWhOVllCWGRvYXJoTWxqelENCg",
 			},
 		}
 
@@ -93,6 +93,14 @@ func TestClientParse(t *testing.T) {
 		}{
 			{
 				Input: "dmVyPTEKY21kPXF1ZXJ5Cmlkaz1WbDRLVlZSb0cwQzh2MVZQMFVFVU5LMnpfU1loTlZZQlhkb2FyaE1sanpRCg",
+				Expected: sqrl.ClientMsg{
+					Ver: []string{sqrl.V1},
+					Cmd: sqrl.CmdQuery,
+					Idk: validIdk,
+				},
+			},
+			{
+				Input: "dmVyPTENCmNtZD1xdWVyeQ0KaWRrPVZsNEtWVlJvRzBDOHYxVlAwVUVVTksyel9TWWhOVllCWGRvYXJoTWxqelENCg",
 				Expected: sqrl.ClientMsg{
 					Ver: []string{sqrl.V1},
 					Cmd: sqrl.CmdQuery,
