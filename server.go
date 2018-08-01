@@ -48,6 +48,11 @@ func ParseServer(raw string) (*ServerMsg, error) {
 		return nil, errors.New("missing one or more required parameters (ver,nut,tif,qry)")
 	}
 
+	ver, err := parseVer(vals["ver"])
+	if err != nil {
+		return nil, err
+	}
+
 	tifstr := vals["tif"]
 	tif, err := strconv.Atoi(tifstr)
 	if err != nil {
@@ -56,7 +61,7 @@ func ParseServer(raw string) (*ServerMsg, error) {
 
 	// TODO: Check supported version before parsing
 	return &ServerMsg{
-		Ver: parseVer(vals["ver"]),
+		Ver: ver,
 		Nut: vals["nut"],
 		Tif: TIF(tif),
 		Qry: vals["qry"],

@@ -1,29 +1,34 @@
 package sqrlhttp_test
 
 import (
-	"encoding/base64"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
+	"github.com/RaniSputnik/sqrl-go"
+
 	"github.com/RaniSputnik/sqrl-go/sqrlhttp"
 )
 
 func TestAuthenticate(t *testing.T) {
 	const emptyBody = ""
-	const validServer = "whatever"
+	const validServer = "dmVyPTENCm51dD11c2pxZmgzdFJoYWdHbjkyN0RZRmpRDQp0aWY9NA0KcXJ5PS9zcXJsP251dD11c2pxZmgzdFJoYWdHbjkyN0RZRmpRDQpzaW49MA0K"
 
-	t.Run("ReturnsBadRequestWhenContentTypeIsNotFormEncoded", func(t *testing.T) {
+	t.Run("ReturnsClientErrorWhenContentTypeIsNotFormEncoded", func(t *testing.T) {
 		h := sqrlhttp.Authenticate()
 		w, r := setupAuthenticate(emptyBody)
 		r.Header.Set("Content-Type", "application/json")
 
 		h.ServeHTTP(w, r)
 
-		if expected := http.StatusBadRequest; w.Code != expected {
-			t.Errorf("Expected: %d, got: %d", expected, w.Code)
+		got, err := sqrl.ParseServer(w.Body.String())
+		if assert.NoError(t, err) {
+			assert.True(t, got.Tif.Has(sqrl.TIFCommandFailed))
+			assert.True(t, got.Tif.Has(sqrl.TIFClientFailure))
 		}
 	})
 
@@ -40,8 +45,10 @@ func TestAuthenticate(t *testing.T) {
 		w, r := setupAuthenticate(fmt.Sprintf("server=%s", validServer))
 		h.ServeHTTP(w, r)
 
-		if expected := http.StatusBadRequest; w.Code != expected {
-			t.Errorf("Expected: %d, got: %d", expected, w.Code)
+		got, err := sqrl.ParseServer(w.Body.String())
+		if assert.NoError(t, err) {
+			assert.True(t, got.Tif.Has(sqrl.TIFCommandFailed))
+			assert.True(t, got.Tif.Has(sqrl.TIFClientFailure))
 		}
 	})
 
@@ -59,21 +66,23 @@ func TestAuthenticate(t *testing.T) {
 
 		h := sqrlhttp.Authenticate()
 
-		const expected = http.StatusBadRequest
-
 		for _, test := range cases {
 			t.Run(test.Name, func(t *testing.T) {
 				w, r := setupAuthenticate(fmt.Sprintf("server=%s&client=%s", validServer, test.Input))
 				h.ServeHTTP(w, r)
-				if w.Code != expected {
-					t.Errorf("Expected: %d, Got: %d", expected, w.Code)
+
+				got, err := sqrl.ParseServer(w.Body.String())
+				if assert.NoError(t, err) {
+					assert.True(t, got.Tif.Has(sqrl.TIFCommandFailed))
+					assert.True(t, got.Tif.Has(sqrl.TIFClientFailure))
 				}
 			})
 		}
 	})
 }
+
 func b64(in string) string {
-	return base64.StdEncoding.EncodeToString([]byte(in))
+	return sqrl.Base64.EncodeToString([]byte(in))
 }
 
 func setupAuthenticate(body string) (*httptest.ResponseRecorder, *http.Request) {

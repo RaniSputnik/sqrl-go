@@ -54,8 +54,17 @@ func ParseClient(raw string) (*ClientMsg, error) {
 		return nil, err
 	}
 
+	if vals["ver"] == "" || vals["cmd"] == "" || vals["idk"] == "" {
+		return nil, errors.New("missing required parameter")
+	}
+
+	ver, err := parseVer(vals["ver"])
+	if err != nil {
+		return nil, err
+	}
+
 	return &ClientMsg{
-		Ver: parseVer(vals["ver"]),
+		Ver: ver,
 		Cmd: Cmd(vals["cmd"]),
 		Idk: Identity(vals["idk"]),
 

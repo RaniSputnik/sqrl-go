@@ -81,9 +81,29 @@ func TestClientEncode(t *testing.T) {
 }
 
 func TestClientParse(t *testing.T) {
-
 	t.Run("ReturnsErrorWhenClientStringInvalid", func(t *testing.T) {
+		validIdk := "PO2ib4BeITiKHTOGW37Mv03dES29DfhJPl6bq5JijoA"
 
+		cases := []struct {
+			Name  string
+			Input string
+		}{
+			{"Empty", ""},
+			{"NotBase64", "notbase64!!@!@£$"},
+			{"OnlyWhitespace", "         "},
+			{"DuplicateFields", sqrl.Base64.EncodeToString([]byte("ver=1\nver=1\ncmd=query\nidk=" + validIdk))},
+			{"MissingIdkField", sqrl.Base64.EncodeToString([]byte("ver=1\ncmd=query"))},
+			{"MissingCmdField", sqrl.Base64.EncodeToString([]byte("ver=1\nidk=" + validIdk))},
+			{"MissingVerField", sqrl.Base64.EncodeToString([]byte("cmd=query\nidk=" + validIdk))},
+			{"VerNotFirst", sqrl.Base64.EncodeToString([]byte("cmd=query\nver=1\nidk=" + validIdk))},
+		}
+
+		for _, testCase := range cases {
+			t.Run(testCase.Name, func(t *testing.T) {
+				_, err := sqrl.ParseClient(testCase.Input)
+				assert.Error(t, err)
+			})
+		}
 	})
 
 	t.Run("ReturnsValidClient", func(t *testing.T) {
