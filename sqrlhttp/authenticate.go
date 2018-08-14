@@ -15,27 +15,14 @@ func clientFailure(response *sqrl.ServerMsg) {
 	response.Tif = response.Tif | sqrl.TIFCommandFailed | sqrl.TIFClientFailure
 }
 
-func Authenticate() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		nextNut := sqrl.Nut(r)
-		response := &sqrl.ServerMsg{
-			Ver: v1Only,
-			Nut: nextNut,
-			Qry: r.URL.Path + "?nut=" + nextNut,
-		}
+func serverError(response *sqrl.ServerMsg) {
+	response.Tif |= sqrl.TIFCommandFailed
+}
 
-		// Write the response
-		defer func() {
-			encoded, err := response.Encode()
-			if err != nil {
-				panic(err)
-			}
-			// TODO: This is a bit janky but it's what the reference
-			// implementation does. Should probably question the use
-			// of this content type given it's not in the form key=value.
-			w.Header().Set("Content-Type", xFormURLEncoded)
-			w.Write([]byte(encoded))
-		}()
+func Authenticate(delegate Delegate) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		response := genNextResponse(r)
+		defer writeResponse(w, response)
 
 		if r.Header.Get("Content-Type") != xFormURLEncoded {
 			clientFailure(response)
@@ -48,18 +35,47 @@ func Authenticate() http.Handler {
 			return
 		}
 
-		_, errc := sqrl.ParseClient(r.Form.Get("client"))
-		_, errs := sqrl.ParseServer(r.Form.Get("server"))
-		if errc != nil || errs != nil {
+		client, errc := sqrl.ParseClient(r.Form.Get("client"))
+		// TODO: Verify server parameter in some way
+		// Ensure that it is the URL / params we sent
+		//_, errs := sqrl.ParseServer(r.Form.Get("server"))
+		if errc != nil /*|| errs != nil */ {
 			clientFailure(response)
 			return
 		}
 
-		// TODO: how do we parse serverMsg (and do we need to?)
-		//serverMsg, errs := sqrl.ParseServer(r.Form.Get("server"))
-
 		// TODO: Verify signatures
 
 		// TODO: Test for IP Match
+
+		isKnown, err := delegate.Known(r.Context(), client.Idk)
+		if err != nil {
+			log.Printf("Failed to process response: %v", err)
+			serverError(response)
+			return
+		} else if isKnown {
+			response.Tif |= sqrl.TIFCurrentIDMatch
+		}
 	})
+}
+
+func genNextResponse(r *http.Request) *sqrl.ServerMsg {
+	nextNut := sqrl.Nut(r)
+	return &sqrl.ServerMsg{
+		Ver: v1Only,
+		Nut: nextNut,
+		Qry: r.URL.Path + "?nut=" + nextNut,
+	}
+}
+
+func writeResponse(w http.ResponseWriter, response *sqrl.ServerMsg) {
+	encoded, err := response.Encode()
+	if err != nil {
+		panic(err)
+	}
+	// TODO: This is a bit janky but it's what the reference
+	// implementation does. Should probably question the use
+	// of this content type given it's not in the form key=value.
+	w.Header().Set("Content-Type", xFormURLEncoded)
+	w.Write([]byte(encoded))
 }

@@ -24,9 +24,10 @@ const indexTemplateString = `
 func main() {
 	port := 8080
 
+	d := &delegate{}
 	router := mux.NewRouter()
 	router.HandleFunc("/", handleIssueChallenge()).Methods(http.MethodGet)
-	router.Handle("/sqrl", sqrlhttp.Authenticate()).Methods(http.MethodPost)
+	router.Handle("/sqrl", sqrlhttp.Authenticate(d)).Methods(http.MethodPost)
 
 	server := http.Server{
 		Addr:    fmt.Sprintf(":%d", port),

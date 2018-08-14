@@ -14,12 +14,16 @@ import (
 	"github.com/RaniSputnik/sqrl-go/sqrlhttp"
 )
 
-func TestAuthenticate(t *testing.T) {
-	const emptyBody = ""
-	const validServer = "dmVyPTENCm51dD11c2pxZmgzdFJoYWdHbjkyN0RZRmpRDQp0aWY9NA0KcXJ5PS9zcXJsP251dD11c2pxZmgzdFJoYWdHbjkyN0RZRmpRDQpzaW49MA0K"
+const emptyBody = ""
+const validServer = "dmVyPTENCm51dD11c2pxZmgzdFJoYWdHbjkyN0RZRmpRDQp0aWY9NA0KcXJ5PS9zcXJsP251dD11c2pxZmgzdFJoYWdHbjkyN0RZRmpRDQpzaW49MA0K"
 
+// Sourced from grc.com SQRL diagnostic site
+// https://www.grc.com/sqrl/logsample.htm
+const validQueryBody = "client=dmVyPTENCmNtZD1xdWVyeQ0KaWRrPVpIa2RQTDM0eWFhSmR5aUtVT1F1SS1zMmtqei1uSGcwVU5RMFpBcjZlZHMNCg&server=c3FybDovL3d3dy5ncmMuY29tL3Nxcmw_bnV0PUNYam9xNVJla3FTNUQ1d3V5QktMUlEmc2ZuPVIxSkQ&ids=JqY1dMvWFunVSykecky3pM21KtW67gegPxcEpiA2obUzb1igxrLrEj5hI9QPZb8dIAnn8TtYSpPj4mRFFqNcAA"
+
+func TestAuthenticate(t *testing.T) {
 	t.Run("ReturnsClientErrorWhenContentTypeIsNotFormEncoded", func(t *testing.T) {
-		h := sqrlhttp.Authenticate()
+		h := sqrlhttp.Authenticate(NewDelegate())
 		w, r := setupAuthenticate(emptyBody)
 		r.Header.Set("Content-Type", "application/json")
 
@@ -32,16 +36,18 @@ func TestAuthenticate(t *testing.T) {
 		}
 	})
 
-	t.Run("ReturnsBadRequestWhenServerParamIsMissing", func(t *testing.T) {
+	// TODO: Invalid Server Param
+	t.Run("ReturnsClientFailureWhenServerParamIsMissing", func(t *testing.T) {
 
 	})
 
-	t.Run("ReturnsBadRequestWhenServerParamIsInvalid", func(t *testing.T) {
+	// TODO: Invalid Server Param
+	t.Run("ReturnsClientFailureWhenServerParamIsInvalid", func(t *testing.T) {
 
 	})
 
-	t.Run("ReturnsBadRequestWhenClientParamIsMissing", func(t *testing.T) {
-		h := sqrlhttp.Authenticate()
+	t.Run("ReturnsClientFailureWhenClientParamIsMissing", func(t *testing.T) {
+		h := sqrlhttp.Authenticate(NewDelegate())
 		w, r := setupAuthenticate(fmt.Sprintf("server=%s", validServer))
 		h.ServeHTTP(w, r)
 
@@ -52,7 +58,7 @@ func TestAuthenticate(t *testing.T) {
 		}
 	})
 
-	t.Run("ReturnsBadRequestWhenClientStringIsInvalid", func(t *testing.T) {
+	t.Run("ReturnsClientFailureWhenClientStringIsInvalid", func(t *testing.T) {
 		cases := []struct {
 			Name  string
 			Input string
@@ -64,7 +70,7 @@ func TestAuthenticate(t *testing.T) {
 			{"VerComesSecond", b64("cmd=query\nver=1")},
 		}
 
-		h := sqrlhttp.Authenticate()
+		h := sqrlhttp.Authenticate(NewDelegate())
 
 		for _, test := range cases {
 			t.Run(test.Name, func(t *testing.T) {
@@ -79,6 +85,18 @@ func TestAuthenticate(t *testing.T) {
 			})
 		}
 	})
+}
+
+func TestAuthenticateReturnsCurrentIDMatchWhenIDIsKnown(t *testing.T) {
+	w, r := setupAuthenticate(validQueryBody)
+	h := sqrlhttp.Authenticate(NewDelegate().ReturnsKnownIdentity())
+
+	h.ServeHTTP(w, r)
+
+	got, err := sqrl.ParseServer(w.Body.String())
+	if assert.NoError(t, err) {
+		assert.True(t, got.Tif.Has(sqrl.TIFCurrentIDMatch))
+	}
 }
 
 func b64(in string) string {
