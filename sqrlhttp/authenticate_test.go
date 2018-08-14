@@ -21,70 +21,62 @@ const validServer = "dmVyPTENCm51dD11c2pxZmgzdFJoYWdHbjkyN0RZRmpRDQp0aWY9NA0KcXJ
 // https://www.grc.com/sqrl/logsample.htm
 const validQueryBody = "client=dmVyPTENCmNtZD1xdWVyeQ0KaWRrPVpIa2RQTDM0eWFhSmR5aUtVT1F1SS1zMmtqei1uSGcwVU5RMFpBcjZlZHMNCg&server=c3FybDovL3d3dy5ncmMuY29tL3Nxcmw_bnV0PUNYam9xNVJla3FTNUQ1d3V5QktMUlEmc2ZuPVIxSkQ&ids=JqY1dMvWFunVSykecky3pM21KtW67gegPxcEpiA2obUzb1igxrLrEj5hI9QPZb8dIAnn8TtYSpPj4mRFFqNcAA"
 
-func TestAuthenticate(t *testing.T) {
-	t.Run("ReturnsClientErrorWhenContentTypeIsNotFormEncoded", func(t *testing.T) {
-		h := sqrlhttp.Authenticate(NewDelegate())
-		w, r := setupAuthenticate(emptyBody)
-		r.Header.Set("Content-Type", "application/json")
+func TestAuthenticateReturnsClientErrorWhenContentTypeIsNotFormEncoded(t *testing.T) {
+	h := sqrlhttp.Authenticate(NewDelegate())
+	w, r := setupAuthenticate(emptyBody)
+	r.Header.Set("Content-Type", "application/json")
 
-		h.ServeHTTP(w, r)
+	h.ServeHTTP(w, r)
 
-		got, err := sqrl.ParseServer(w.Body.String())
-		if assert.NoError(t, err) {
-			assert.True(t, got.Tif.Has(sqrl.TIFCommandFailed))
-			assert.True(t, got.Tif.Has(sqrl.TIFClientFailure))
-		}
-	})
+	got, err := sqrl.ParseServer(w.Body.String())
+	if assert.NoError(t, err) {
+		assert.True(t, got.Tif.Has(sqrl.TIFCommandFailed))
+		assert.True(t, got.Tif.Has(sqrl.TIFClientFailure))
+	}
+}
 
-	// TODO: Invalid Server Param
-	t.Run("ReturnsClientFailureWhenServerParamIsMissing", func(t *testing.T) {
+// TODO: Invalid Server Param
 
-	})
+// TODO: Invalid Server Param
 
-	// TODO: Invalid Server Param
-	t.Run("ReturnsClientFailureWhenServerParamIsInvalid", func(t *testing.T) {
+func TestAuthenticateReturnsClientFailureWhenClientParamIsMissing(t *testing.T) {
+	h := sqrlhttp.Authenticate(NewDelegate())
+	w, r := setupAuthenticate(fmt.Sprintf("server=%s", validServer))
+	h.ServeHTTP(w, r)
 
-	})
+	got, err := sqrl.ParseServer(w.Body.String())
+	if assert.NoError(t, err) {
+		assert.True(t, got.Tif.Has(sqrl.TIFCommandFailed))
+		assert.True(t, got.Tif.Has(sqrl.TIFClientFailure))
+	}
+}
 
-	t.Run("ReturnsClientFailureWhenClientParamIsMissing", func(t *testing.T) {
-		h := sqrlhttp.Authenticate(NewDelegate())
-		w, r := setupAuthenticate(fmt.Sprintf("server=%s", validServer))
-		h.ServeHTTP(w, r)
+func TestAuthenticateReturnsClientFailureWhenClientStringIsInvalid(t *testing.T) {
+	cases := []struct {
+		Name  string
+		Input string
+	}{
+		{"Empty", ""},
+		{"VersionOnly", b64("ver=1\n\n\n\n")},
+		{"Rubbish", b64("this is rubbish")},
+		{"DuplicateVer", b64("ver=1\nver=2\nver=3\ncmd=query\n")},
+		{"VerComesSecond", b64("cmd=query\nver=1")},
+	}
 
-		got, err := sqrl.ParseServer(w.Body.String())
-		if assert.NoError(t, err) {
-			assert.True(t, got.Tif.Has(sqrl.TIFCommandFailed))
-			assert.True(t, got.Tif.Has(sqrl.TIFClientFailure))
-		}
-	})
+	h := sqrlhttp.Authenticate(NewDelegate())
 
-	t.Run("ReturnsClientFailureWhenClientStringIsInvalid", func(t *testing.T) {
-		cases := []struct {
-			Name  string
-			Input string
-		}{
-			{"Empty", ""},
-			{"VersionOnly", b64("ver=1\n\n\n\n")},
-			{"Rubbish", b64("this is rubbish")},
-			{"DuplicateVer", b64("ver=1\nver=2\nver=3\ncmd=query\n")},
-			{"VerComesSecond", b64("cmd=query\nver=1")},
-		}
+	for _, test := range cases {
+		t.Run(test.Name, func(t *testing.T) {
+			w, r := setupAuthenticate(fmt.Sprintf("server=%s&client=%s", validServer, test.Input))
+			h.ServeHTTP(w, r)
 
-		h := sqrlhttp.Authenticate(NewDelegate())
-
-		for _, test := range cases {
-			t.Run(test.Name, func(t *testing.T) {
-				w, r := setupAuthenticate(fmt.Sprintf("server=%s&client=%s", validServer, test.Input))
-				h.ServeHTTP(w, r)
-
-				got, err := sqrl.ParseServer(w.Body.String())
-				if assert.NoError(t, err) {
-					assert.True(t, got.Tif.Has(sqrl.TIFCommandFailed))
-					assert.True(t, got.Tif.Has(sqrl.TIFClientFailure))
-				}
-			})
-		}
-	})
+			got, err := sqrl.ParseServer(w.Body.String())
+			if assert.NoError(t, err) {
+				assert.True(t, got.Tif.Has(sqrl.TIFCommandFailed))
+				assert.True(t, got.Tif.Has(sqrl.TIFClientFailure))
+			}
+		})
+	}
 }
 
 func TestAuthenticateReturnsCurrentIDMatchWhenIDIsKnown(t *testing.T) {
