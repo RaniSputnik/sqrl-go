@@ -2,15 +2,6 @@ package sqrl
 
 import "encoding/base64"
 
-// Identity represents a users site specific public key,
-// base64 encoded for transmission.
-type Identity string
-
-// Signature is a base64 signature sent by the
-// client. The signature can be verified using the
-// corresponding identity.
-type Signature string
-
 const (
 	// V1 is the version 1 string for the SQRL protocol.
 	V1 = "1"

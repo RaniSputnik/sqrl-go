@@ -35,8 +35,10 @@ func Authenticate(delegate Delegate) http.Handler {
 			return
 		}
 
-		client, errc := sqrl.ParseClient(r.Form.Get("client"))
-		// TODO: Verify server parameter in some way
+		clientRaw := r.Form.Get("client")
+		serverRaw := r.Form.Get("server")
+
+		client, errc := sqrl.ParseClient(clientRaw)
 		// Ensure that it is the URL / params we sent
 		//_, errs := sqrl.ParseServer(r.Form.Get("server"))
 		if errc != nil /*|| errs != nil */ {
@@ -44,7 +46,14 @@ func Authenticate(delegate Delegate) http.Handler {
 			return
 		}
 
-		// TODO: Verify signatures
+		// TODO: Verify server parameter in some way
+
+		ids := sqrl.Signature(r.Form.Get("ids"))
+		signedPayload := clientRaw + serverRaw
+		if !ids.Verify(client.Idk, signedPayload) {
+			clientFailure(response)
+			return
+		}
 
 		// TODO: Test for IP Match
 

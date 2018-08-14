@@ -19,6 +19,8 @@ const validServer = "dmVyPTENCm51dD11c2pxZmgzdFJoYWdHbjkyN0RZRmpRDQp0aWY9NA0KcXJ
 
 // Sourced from grc.com SQRL diagnostic site
 // https://www.grc.com/sqrl/logsample.htm
+const invalidQuerySignature = "client=dmVyPTENCmNtZD1xdWVyeQ0KaWRrPVpIa2RQTDM0eWFhSmR5aUtVT1F1SS1zMmtqei1uSGcwVU5RMFpBcjZlZHMNCg&server=c3FybDovL3d3dy5ncmMuY29tL3Nxcmw_bnV0PUNYam9xNVJla3FTNUQ1d3V5QktMUlEmc2ZuPVIxSkQ&ids=invalid"
+
 const validQueryBody = "client=dmVyPTENCmNtZD1xdWVyeQ0KaWRrPVpIa2RQTDM0eWFhSmR5aUtVT1F1SS1zMmtqei1uSGcwVU5RMFpBcjZlZHMNCg&server=c3FybDovL3d3dy5ncmMuY29tL3Nxcmw_bnV0PUNYam9xNVJla3FTNUQ1d3V5QktMUlEmc2ZuPVIxSkQ&ids=JqY1dMvWFunVSykecky3pM21KtW67gegPxcEpiA2obUzb1igxrLrEj5hI9QPZb8dIAnn8TtYSpPj4mRFFqNcAA"
 
 func TestAuthenticateReturnsClientErrorWhenContentTypeIsNotFormEncoded(t *testing.T) {
@@ -87,7 +89,19 @@ func TestAuthenticateReturnsCurrentIDMatchWhenIDIsKnown(t *testing.T) {
 
 	got, err := sqrl.ParseServer(w.Body.String())
 	if assert.NoError(t, err) {
-		assert.True(t, got.Is(sqrl.TIFCurrentIDMatch))
+		assert.True(t, got.Is(sqrl.TIFCurrentIDMatch), "Expected ID match")
+	}
+}
+
+func TestAuthenticateReturnsClientErrorWhenSignatureInvalid(t *testing.T) {
+	w, r := setupAuthenticate(invalidQuerySignature)
+	h := sqrlhttp.Authenticate(NewDelegate())
+
+	h.ServeHTTP(w, r)
+
+	got, err := sqrl.ParseServer(w.Body.String())
+	if assert.NoError(t, err) {
+		assert.True(t, got.Is(sqrl.TIFClientFailure), "Expected client failure")
 	}
 }
 
