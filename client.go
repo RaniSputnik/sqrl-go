@@ -48,6 +48,7 @@ func (m ClientMsg) HasOpt(query Opt) bool {
 	return false
 }
 
+// ParseClient decodes a client message from the given string
 func ParseClient(raw string) (*ClientMsg, error) {
 	vals, err := parseMsg(raw)
 	if err != nil {

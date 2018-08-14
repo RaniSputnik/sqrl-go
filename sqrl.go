@@ -73,11 +73,30 @@ const (
 type Opt string
 
 const (
+	// OptNoIPTest instructs the server to ignore any IP mismatch and to proceed
+	// to process the client's query even if the IPs do not match. By default,
+	// SQRL servers fail any incoming SQRL query whose IP does not match the IP
+	// encoded into the query's nut.
 	OptNoIPTest = Opt("noiptest")
+
+	// OptSQRLOnly disables any alternative non-SQRL authentication capability.
 	OptSQRLOnly = Opt("sqrlonly")
+
+	// OptHardlock disables any alternative “out of band” change to this user's
+	// SQRL identity, such as traditional and weak “what as your favorite pet's
+	// name” non-SQRL identity authentication.
 	OptHardlock = Opt("hardlock")
-	OptCPS      = Opt("cps")
-	OptSUK      = Opt("suk")
+
+	// OptCPS informs the server that the client has established a secure and private
+	// means of returning a server-supplied logged-in session URL to the web browser
+	// after successful authentication.
+	// https://www.grc.com/sqrl/semantics.htm
+	OptCPS = Opt("cps")
+
+	// OptSUK instructs the SQRL server to return the stored server unlock key
+	// (SUK) associated with whichever identity matches the identity supplied
+	// by the SQRL client.
+	OptSUK = Opt("suk")
 )
 
 // Base64 is the encoder that should be used when

@@ -60,7 +60,3 @@ const (
 	// to submit the query
 	TIFBadIDAssociation = TIF(0x100)
 )
-
-func (t TIF) Set(flag TIF) TIF   { return t | flag }
-func (t TIF) Unset(flag TIF) TIF { return t &^ flag }
-func (t TIF) Has(flag TIF) bool  { return t&flag != 0 }

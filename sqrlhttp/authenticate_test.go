@@ -30,8 +30,8 @@ func TestAuthenticateReturnsClientErrorWhenContentTypeIsNotFormEncoded(t *testin
 
 	got, err := sqrl.ParseServer(w.Body.String())
 	if assert.NoError(t, err) {
-		assert.True(t, got.Tif.Has(sqrl.TIFCommandFailed))
-		assert.True(t, got.Tif.Has(sqrl.TIFClientFailure))
+		assert.True(t, got.Is(sqrl.TIFCommandFailed))
+		assert.True(t, got.Is(sqrl.TIFClientFailure))
 	}
 }
 
@@ -46,8 +46,8 @@ func TestAuthenticateReturnsClientFailureWhenClientParamIsMissing(t *testing.T) 
 
 	got, err := sqrl.ParseServer(w.Body.String())
 	if assert.NoError(t, err) {
-		assert.True(t, got.Tif.Has(sqrl.TIFCommandFailed))
-		assert.True(t, got.Tif.Has(sqrl.TIFClientFailure))
+		assert.True(t, got.Is(sqrl.TIFCommandFailed))
+		assert.True(t, got.Is(sqrl.TIFClientFailure))
 	}
 }
 
@@ -72,8 +72,8 @@ func TestAuthenticateReturnsClientFailureWhenClientStringIsInvalid(t *testing.T)
 
 			got, err := sqrl.ParseServer(w.Body.String())
 			if assert.NoError(t, err) {
-				assert.True(t, got.Tif.Has(sqrl.TIFCommandFailed))
-				assert.True(t, got.Tif.Has(sqrl.TIFClientFailure))
+				assert.True(t, got.Is(sqrl.TIFCommandFailed))
+				assert.True(t, got.Is(sqrl.TIFClientFailure))
 			}
 		})
 	}
@@ -87,7 +87,7 @@ func TestAuthenticateReturnsCurrentIDMatchWhenIDIsKnown(t *testing.T) {
 
 	got, err := sqrl.ParseServer(w.Body.String())
 	if assert.NoError(t, err) {
-		assert.True(t, got.Tif.Has(sqrl.TIFCurrentIDMatch))
+		assert.True(t, got.Is(sqrl.TIFCurrentIDMatch))
 	}
 }
 

@@ -40,6 +40,24 @@ func (m *ServerMsg) Encode() (string, error) {
 	return Base64.EncodeToString([]byte(strings.Join(vals, "\r\n"))), nil
 }
 
+// Set adds the given transaction information flag
+// to the server message.
+func (m *ServerMsg) Set(flag TIF) {
+	m.Tif |= flag
+}
+
+// Unset removes the given transaction information
+// flag from the server message.
+func (m *ServerMsg) Unset(flag TIF) {
+	m.Tif &^= flag
+}
+
+// Is returns whether or not the server message
+// includes the given transaction information flag.
+func (m *ServerMsg) Is(flag TIF) bool {
+	return m.Tif&flag != 0
+}
+
 // ParseServer decodes the base64 encoded server
 // parameter into the component parts.
 func ParseServer(raw string) (*ServerMsg, error) {

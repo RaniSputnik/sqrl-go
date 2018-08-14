@@ -68,3 +68,43 @@ func TestServerParse(t *testing.T) {
 		}
 	})
 }
+
+func TestServerMsgIs(t *testing.T) {
+	testCases := []struct {
+		Input  sqrl.TIF
+		Test   sqrl.TIF
+		Expect bool
+	}{
+		{
+			Input:  sqrl.TIFIPMatch,
+			Test:   sqrl.TIFIPMatch,
+			Expect: true,
+		},
+		{
+			Input:  sqrl.TIFClientFailure | sqrl.TIFCommandFailed,
+			Test:   sqrl.TIFCommandFailed,
+			Expect: true,
+		},
+		{
+			Input:  sqrl.TIFBadIDAssociation | sqrl.TIFIPMatch,
+			Test:   sqrl.TIFIPMatch,
+			Expect: true,
+		},
+		{
+			Input:  sqrl.TIFFunctionNotSupported,
+			Test:   sqrl.TIFIPMatch,
+			Expect: false,
+		},
+		{
+			Input:  sqrl.TIF(0),
+			Test:   sqrl.TIFSQRLDisabled,
+			Expect: false,
+		},
+	}
+
+	for _, testCase := range testCases {
+		serverMsg := sqrl.ServerMsg{Tif: testCase.Input}
+		got := serverMsg.Is(testCase.Test)
+		assert.Equal(t, testCase.Expect, got)
+	}
+}
