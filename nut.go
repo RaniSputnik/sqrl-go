@@ -14,14 +14,16 @@ import (
 
 var nuts uint32
 
-// Nut returns a challenge that should be returned to
+// Nut is a base64, encrypted nonce that contains
+// metadata about the request that it was derived from.
+type Nut string
+
+// Next returns a challenge that should be returned to
 // SQRL client for signing.
 //
 // The Nut (think nonce) is guaranteed to be unique
 // and unpredictable to prevent replay attacks.
-//
-// TODO Nut should be a type?
-func Nut(r *http.Request) string {
+func Next(r *http.Request) Nut {
 	//  32 bits: user's connection IP address if secured, 0.0.0.0 if non-secured.
 	//  32 bits: UNIX-time timestamp incrementing once per second.
 	//  32 bits: up-counter incremented once for every SQRL link generated.
@@ -95,7 +97,8 @@ func Nut(r *http.Request) string {
 		panic(err.Error())
 	}
 
-	return Base64.EncodeToString(aesgcm.Seal(nil, nonce, nut, nil))
+	encryptedNonce := aesgcm.Seal(nil, nonce, nut, nil)
+	return Nut(Base64.EncodeToString(encryptedNonce))
 }
 
 func parseIP(remoteAddr string) net.IP {

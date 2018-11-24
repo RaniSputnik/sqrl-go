@@ -14,7 +14,7 @@ type ServerMsg struct {
 	// consumers actually need to be able to
 	// set this?
 	Ver []string
-	Nut string // TODO: type Nut
+	Nut Nut
 	Tif TIF
 	Qry string
 
@@ -32,7 +32,7 @@ type ServerMsg struct {
 func (m *ServerMsg) Encode() (string, error) {
 	vals := []string{
 		"ver=" + strings.Join(m.Ver, ","),
-		"nut=" + m.Nut,
+		"nut=" + string(m.Nut),
 		"tif=" + strconv.Itoa(int(m.Tif)),
 		"qry=" + m.Qry,
 		"", // Must end with a final newline
@@ -77,10 +77,13 @@ func ParseServer(raw string) (*ServerMsg, error) {
 		return nil, fmt.Errorf("required value 'tif' is invalid: '%s'", tifstr)
 	}
 
+	// TODO: Ensure nut can be decoded correctly
+	nut := Nut(vals["nut"])
+
 	// TODO: Check supported version before parsing
 	return &ServerMsg{
 		Ver: ver,
-		Nut: vals["nut"],
+		Nut: nut,
 		Tif: TIF(tif),
 		Qry: vals["qry"],
 	}, nil

@@ -69,11 +69,11 @@ func Authenticate(delegate Delegate) http.Handler {
 }
 
 func genNextResponse(r *http.Request) *sqrl.ServerMsg {
-	nextNut := sqrl.Nut(r)
+	nextNut := sqrl.Next(r)
 	return &sqrl.ServerMsg{
 		Ver: v1Only,
 		Nut: nextNut,
-		Qry: r.URL.Path + "?nut=" + nextNut,
+		Qry: r.URL.Path + "?nut=" + string(nextNut),
 	}
 }
 

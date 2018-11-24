@@ -59,7 +59,7 @@ func handleIssueChallenge() http.HandlerFunc {
 }
 
 func createLoginURL(r *http.Request, domain string) string {
-	nonce := sqrl.Nut(r)
+	nonce := sqrl.Next(r)
 	return fmt.Sprintf("sqrl://%s/sqrl?%s", domain, nonce)
 }
 
