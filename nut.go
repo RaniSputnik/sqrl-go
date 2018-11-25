@@ -2,8 +2,6 @@ package sqrl
 
 import (
 	"bytes"
-	"crypto/aes"
-	"crypto/cipher"
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/binary"
@@ -88,13 +86,12 @@ func (s *Server) Nut(clientIdentifier string) Nut {
 	//   1  bit: flag bit to indicate source: QRcode or URL click
 	// TODO
 
-	aesgcm := s.aesgcm()
-	nonce := make([]byte, aesgcm.NonceSize())
+	nonce := make([]byte, s.aesgcm.NonceSize())
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		panic(err.Error())
 	}
 
-	encryptedNut := aesgcm.Seal(nil, nonce, nut, nil)
+	encryptedNut := s.aesgcm.Seal(nil, nonce, nut, nil)
 	encryptedNutAndNonce := append(nonce, encryptedNut...)
 	return Nut(Base64.EncodeToString(encryptedNutAndNonce))
 }
@@ -140,27 +137,14 @@ func (s *Server) decryptNut(encrypted Nut) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	aesgcm := s.aesgcm()
-	nonceSize := aesgcm.NonceSize()
+	nonceSize := s.aesgcm.NonceSize()
 	if len(decodedNutAndNonce) <= nonceSize {
 		return nil, errors.New("invalid nut")
 	}
 	nonce := decodedNutAndNonce[:nonceSize]
 	encryptedNut := decodedNutAndNonce[nonceSize:]
 
-	return aesgcm.Open(nil, nonce, encryptedNut, nil)
-}
-
-func (s *Server) aesgcm() cipher.AEAD {
-	block, err := aes.NewCipher(s.key)
-	if err != nil {
-		panic(err.Error())
-	}
-	aesgcm, err := cipher.NewGCM(block)
-	if err != nil {
-		panic(err.Error())
-	}
-	return aesgcm
+	return s.aesgcm.Open(nil, nonce, encryptedNut, nil)
 }
 
 func nutClientIDBytes(clientIdentifier string) []byte {

@@ -9,7 +9,7 @@ import (
 
 const validIdk = sqrl.Identity("Vl4KVVRoG0C8v1VP0UEUNK2z_SYhNVYBXdoarhMljzQ")
 
-func TestClientEncode(t *testing.T) {
+func TestClientMsgEncode(t *testing.T) {
 	t.Run("FailsToEncodeInvalidClientMessages", func(t *testing.T) {
 		cases := []struct {
 			Name  string
@@ -80,7 +80,7 @@ func TestClientEncode(t *testing.T) {
 	})
 }
 
-func TestClientParse(t *testing.T) {
+func TestClientMsgParse(t *testing.T) {
 	t.Run("ReturnsErrorWhenClientStringInvalid", func(t *testing.T) {
 		validIdk := "PO2ib4BeITiKHTOGW37Mv03dES29DfhJPl6bq5JijoA"
 

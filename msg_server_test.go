@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestServerEncode(t *testing.T) {
+func TestServerMsgEncode(t *testing.T) {
 	t.Run("EncodesValidServerMsg", func(t *testing.T) {
 		testCases := []struct {
 			Input  sqrl.ServerMsg
@@ -32,7 +32,7 @@ func TestServerEncode(t *testing.T) {
 	})
 }
 
-func TestServerParse(t *testing.T) {
+func TestServerMsgParse(t *testing.T) {
 	t.Run("ReturnsValidServerMsg", func(t *testing.T) {
 		testCases := []struct {
 			Input  string

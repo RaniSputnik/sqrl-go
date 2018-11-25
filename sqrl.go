@@ -1,6 +1,8 @@
 package sqrl
 
-import "encoding/base64"
+import (
+	"encoding/base64"
+)
 
 const (
 	// V1 is the version 1 string for the SQRL protocol.
