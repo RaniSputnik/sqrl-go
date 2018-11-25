@@ -3,10 +3,7 @@
 package client_test
 
 import (
-	"io"
-	"io/ioutil"
 	"net/http"
-	"strings"
 	"testing"
 	"time"
 
@@ -25,7 +22,7 @@ func TestLiveServer(t *testing.T) {
 	fatal(t, err)
 	defer resp.Body.Close()
 
-	challenge, err := extractSQRLChallenge(resp.Body)
+	challenge, err := extractSQRLChallenge(resp.Body, "www.grc.com")
 	fatal(t, err)
 
 	t.Logf("Challenge='%s'", challenge)
@@ -37,37 +34,6 @@ func TestLiveServer(t *testing.T) {
 	expectErr(t, nil, client.Login(challenge))
 }
 
-func extractSQRLChallenge(body io.Reader) (string, error) {
-	// Here, we search the body for a link with a value like the following
-	// sqrl://www.grc.com/sqrl?nut=tx--bnqG7j4s-gEz1y4j8A
-	// this is the SRQL challenge that we should answer in order to login.
-	// TODO: don't read entire body, stop once we find the URL
-
-	bytes, err := ioutil.ReadAll(body)
-	if err != nil {
-		return "", err
-	}
-
-	bodyString := string(bytes)
-	searchString := "sqrl://www.grc.com/sqrl?nut="
-	left := strings.Index(bodyString, searchString)
-	challenge := bodyString[left:]
-	right := strings.Index(challenge, "\"")
-	// Wierd bug in GRC's server
-	if right2 := strings.Index(challenge, "<"); right2 < right {
-		right = right2
-	}
-	challenge = challenge[:right]
-
-	return challenge, nil
-}
-
 func waitForGRCWaitLimit() {
 	time.Sleep(1 * time.Second)
-}
-
-func fatal(t *testing.T, err error) {
-	if err != nil {
-		t.Fatalf("Expected error: '<nil>', got: '%v'", err)
-	}
 }

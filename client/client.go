@@ -23,14 +23,24 @@ var HttpClient = &http.Client{
 	Timeout: time.Second * 5,
 }
 
+var defaultClient = &Client{}
+
 func Login(uri string) error {
+	return defaultClient.Login(uri)
+}
+
+type Client struct {
+	UseInsecureConnection bool
+}
+
+func (c *Client) Login(uri string) error {
 	var rand io.Reader
 	pub, priv, err := ed25519.GenerateKey(rand)
 	if err != nil {
 		return err
 	}
 
-	endpoint, err := getEndpoint(uri)
+	endpoint, err := c.getEndpoint(uri)
 	if err != nil {
 		return err
 	}
@@ -82,7 +92,7 @@ func do(uri string, form string) (*sqrl.ServerMsg, error) {
 }
 
 // getEndpoint transforms a sqrl:// URL to a https:// URL
-func getEndpoint(uri string) (endpoint string, err error) {
+func (c *Client) getEndpoint(uri string) (endpoint string, err error) {
 	parsed, err := url.Parse(uri)
 	if err != nil {
 		return "", ErrUriInvalid
@@ -92,6 +102,10 @@ func getEndpoint(uri string) (endpoint string, err error) {
 	}
 
 	parsed.Scheme = "https"
+	if c.UseInsecureConnection {
+		parsed.Scheme = "http"
+	}
+
 	return parsed.String(), nil
 }
 

@@ -21,6 +21,8 @@ func serverError(response *sqrl.ServerMsg) {
 
 func Authenticate(server *sqrl.Server, delegate Delegate) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Got SQRL request: %v", r)
+
 		response := genNextResponse(server, r)
 		defer writeResponse(w, response)
 
