@@ -4,22 +4,20 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/md5"
 	"crypto/rand"
 	"encoding/binary"
 	"errors"
 	"io"
-	"net"
-	"net/http"
-	"strings"
 	"sync/atomic"
 	"time"
 )
 
-// NoIPCheck is used to represent a nut that will not
-// perform an IP check when validated. The NoIPCheck
-// bytes are used instead of the IP address when building
-// the nut contents.
-var NoIPCheck = make([]byte, 4)
+// NoClientID is used to represent a nut that will not
+// perform any client identification check when validated.
+var NoClientID = ""
+
+var noClientIDBytes = make([]byte, 4)
 
 var nuts uint32
 
@@ -32,7 +30,19 @@ type Nut string
 //
 // The Nut (think nonce) is guaranteed to be unique
 // and unpredictable to prevent replay attacks.
-func (s *Server) Nut(r *http.Request) Nut {
+//
+// clientIdentifier should at least include the IP address
+// of the client the Nut is being generated for, but could
+// include other intentification information such as User-Agent.
+//
+// It is important that clientIdentifier is created in a
+// deterministic way, as it must match the clientIdentifier
+// used during nut validation.
+//
+// Alternatively, NoClientID can be used to skip the client
+// identification check. This should only be used if client
+// identification is not possible.
+func (s *Server) Nut(clientIdentifier string) Nut {
 	//  32 bits: user's connection IP address if secured, 0.0.0.0 if non-secured.
 	//  32 bits: UNIX-time timestamp incrementing once per second.
 	//  32 bits: up-counter incremented once for every SQRL link generated.
@@ -44,13 +54,7 @@ func (s *Server) Nut(r *http.Request) Nut {
 	nut := make([]byte, 16)
 
 	//  32 bits: user's connection IP address if secured, 0.0.0.0 if non-secured.
-	// TODO X-Forwarded-For
-	// TODO only parse IP Address if it is a secure connection
-	// TODO instead of using IP address, use a combination of
-	// IP, User Agent, Protocol and hash. Would allow verification
-	// that the client who submits login is the same as the client
-	// who requested login.
-	ip := nutIPBytes(r)
+	ip := nutClientIDBytes(clientIdentifier)
 	nut[0] = ip[0]
 	nut[1] = ip[1]
 	nut[2] = ip[2]
@@ -98,24 +102,25 @@ func (s *Server) Nut(r *http.Request) Nut {
 // Validate checks a nut returned by a client to ensure the nut
 // is valid.
 //
-// The clients IP is checked against the IP information
-// encrypted in the nut to ensure the nut has been returned from
-// the same machine it was originally sent to.
+// The clients identifier (usually IP) is checked against the
+// identifier encrypted in the nut to ensure the nut has been
+// returned from the same machine it was originally sent to.
 //
-// Note: The IP check will not be performed if the nut was
-// created with the NoIPCheck bytes.
+// Note: The client ID check will not be performed if the nut was
+// created with NoClientID.
 //
 // The nut's expiry is also checked, to ensure there hasn't been
 // a significant delay between nut issuing and nut return.
-func (s *Server) Validate(returned Nut, r *http.Request) bool {
+func (s *Server) Validate(returned Nut, clientIdentifier string) bool {
 	decryptedNut, err := s.decryptNut(returned)
 	if err != nil || len(decryptedNut) != 16 {
 		return false // TODO: Do we need to expose this error?
 	}
 
 	originalIP := decryptedNut[:4]
-	if shouldCheckIP := bytes.Equal(originalIP, NoIPCheck); !shouldCheckIP {
-		ip := nutIPBytes(r)
+	shouldCheckIP := bytes.Equal(originalIP, noClientIDBytes)
+	if !shouldCheckIP {
+		ip := nutClientIDBytes(clientIdentifier)
 		if ipMatch := bytes.Equal(ip, originalIP); !ipMatch {
 			return false
 		}
@@ -158,34 +163,10 @@ func (s *Server) aesgcm() cipher.AEAD {
 	return aesgcm
 }
 
-func nutIPBytes(r *http.Request) []byte {
-	ip := parseIP(r.RemoteAddr)
-	if !ip.IsLoopback() {
-		ip = ip.To4()
-		if len(ip) == net.IPv4len {
-			return ip
-		}
+func nutClientIDBytes(clientIdentifier string) []byte {
+	if clientIdentifier == NoClientID {
+		return noClientIDBytes
 	}
-	return make([]byte, 4)
-}
-
-func parseIP(remoteAddr string) net.IP {
-	// TODO this func is rubbish, clean it up
-	res := remoteAddr
-	if len(remoteAddr) == 0 {
-		return NoIPCheck
-	}
-	if remoteAddr[0] == '[' {
-		i := strings.LastIndex(remoteAddr, "]")
-		if i > 0 {
-			res = remoteAddr[1:i]
-		} else {
-			res = remoteAddr[1:]
-		}
-	}
-	if pci := strings.IndexRune(res, '%'); pci > -1 {
-		res = res[:pci]
-	}
-	// TODO strip port number
-	return net.ParseIP(res)
+	hashedClientID := md5.Sum([]byte(clientIdentifier))
+	return hashedClientID[:4]
 }

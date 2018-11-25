@@ -1,7 +1,6 @@
 package sqrl_test
 
 import (
-	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -11,17 +10,16 @@ import (
 )
 
 func TestNut(t *testing.T) {
-	anyRequest := httptest.NewRequest("GET", "/sqrl", nil)
 	anyKey := make([]byte, 16)
 	server := sqrl.Configure(anyKey)
 
 	t.Run("ReturnsANonEmptyValue", func(t *testing.T) {
-		result := server.Nut(anyRequest)
+		result := server.Nut(sqrl.NoClientID)
 		assert.NotEmpty(t, result)
 	})
 
 	t.Run("ReturnsBase64EncodedString", func(t *testing.T) {
-		result := server.Nut(anyRequest)
+		result := server.Nut(sqrl.NoClientID)
 		_, err := sqrl.Base64.DecodeString(string(result))
 		assert.NoError(t, err, "Expected nut to be base64 encoded, but got an error during decoding")
 	})
@@ -30,58 +28,60 @@ func TestNut(t *testing.T) {
 		results := map[sqrl.Nut]struct{}{}
 
 		for i := 0; i < 100; i++ {
-			result := server.Nut(anyRequest)
+			result := server.Nut(sqrl.NoClientID)
 			if !assert.NotContainsf(t, results, result, "Found duplicate nut: '%s'", result) {
 				break
 			}
 			results[result] = struct{}{}
 		}
 	})
+
+	// TODO: Check allows concurrent generation of nuts?
 }
 
 func TestValidate(t *testing.T) {
-	firstRequest := httptest.NewRequest("GET", "/sqrl", nil)
-	firstRequest.RemoteAddr = "12.34.56.7"
-	validRequest := httptest.NewRequest("GET", "/sqrl", nil)
-	validRequest.RemoteAddr = "12.34.56.7"
-	requestFromIncorrectIP := httptest.NewRequest("GET", "/sqrl", nil)
-	requestFromIncorrectIP.RemoteAddr = "76.54.32.1"
-	validRequestWithNoIP := httptest.NewRequest("GET", "/sqrl", nil)
-	validRequestWithNoIP.RemoteAddr = ""
-
+	validIP := "12.34.56.7"
 	anyKey := make([]byte, 16)
 	server := sqrl.Configure(anyKey)
-	validNut := server.Nut(firstRequest)
-	validNutWithNoIPCheck := server.Nut(validRequestWithNoIP)
+	validNut := server.Nut(validIP)
 
 	t.Run("ReturnsFalseWhenNutIsEmpty", func(t *testing.T) {
-		assert.False(t, server.Validate(sqrl.Nut(""), validRequest))
+		assert.False(t, server.Validate(sqrl.Nut(""), validIP))
 	})
 
 	t.Run("ReturnsFalseWhenNutIsInvalid", func(t *testing.T) {
-		assert.False(t, server.Validate(sqrl.Nut("invalid"), validRequest))
+		assert.False(t, server.Validate(sqrl.Nut("invalid"), validIP))
 	})
 
 	t.Run("ReturnsFalseWhenIPsDoNotMatch", func(t *testing.T) {
-		assert.False(t, server.Validate(validNut, requestFromIncorrectIP))
+		incorrectIP := "76.54.32.1"
+		assert.False(t, server.Validate(validNut, incorrectIP))
 	})
 
 	t.Run("IgnoresIPCheckWhenIPBytesAreNotSet", func(t *testing.T) {
-		assert.True(t, server.Validate(validNutWithNoIPCheck, validRequest))
+		validNutWithNoIPCheck := server.Nut(sqrl.NoClientID)
+		assert.True(t, server.Validate(validNutWithNoIPCheck, validIP))
+	})
+
+	t.Run("ReturnsFalseWhenComplexClientIDDoesNotMatch", func(t *testing.T) {
+		complexClientID := "12.34.56.7+Chrome@70+uid:1234567"
+		nonmatchClientID := "12.34.56.7+Safari+uid:1234567"
+		nutWithComplexClient := server.Nut(complexClientID)
+		assert.False(t, server.Validate(nutWithComplexClient, nonmatchClientID))
 	})
 
 	t.Run("ReturnsFalseWhenNutHasExpired", func(t *testing.T) {
 		shortExpiry := time.Millisecond * 5
 		serverWithShortExpiry := sqrl.Configure(anyKey).WithNutExpiry(shortExpiry)
-		validNutWithShortExpiry := serverWithShortExpiry.Nut(firstRequest)
+		validNutWithShortExpiry := serverWithShortExpiry.Nut(validIP)
 
 		// Wait for the nut to expire
 		<-time.After(time.Millisecond * 10)
 
-		assert.False(t, serverWithShortExpiry.Validate(validNutWithShortExpiry, validRequest))
+		assert.False(t, serverWithShortExpiry.Validate(validNutWithShortExpiry, validIP))
 	})
 
 	t.Run("ReturnsTrueWhenIPsMatchAndNutIsValid", func(t *testing.T) {
-		assert.True(t, server.Validate(validNut, validRequest))
+		assert.True(t, server.Validate(validNut, validIP))
 	})
 }
