@@ -13,7 +13,6 @@ import (
 	sqrl "github.com/RaniSputnik/sqrl-go"
 	"github.com/RaniSputnik/sqrl-go/sqrlhttp"
 	"github.com/gorilla/mux"
-	qrcode "github.com/skip2/go-qrcode"
 )
 
 const indexTemplateString = `
@@ -24,10 +23,13 @@ const indexTemplateString = `
 func main() {
 	port := 8080
 
+	insecureKey := make([]byte, 16) // TODO: Generate a random key
+	sqrlServer := sqrl.Configure(insecureKey)
+
 	d := &delegate{}
 	router := mux.NewRouter()
-	router.HandleFunc("/", handleIssueChallenge()).Methods(http.MethodGet)
-	router.Handle("/sqrl", sqrlhttp.Authenticate(d)).Methods(http.MethodPost)
+	router.HandleFunc("/", handleIssueChallenge(sqrlServer)).Methods(http.MethodGet)
+	router.Handle("/sqrl", sqrlhttp.Authenticate(sqrlServer, d)).Methods(http.MethodPost)
 
 	server := http.Server{
 		Addr:    fmt.Sprintf(":%d", port),
@@ -38,35 +40,19 @@ func main() {
 	log.Fatal(server.ListenAndServe())
 }
 
-// TODO move to SQRL http package
-func handleIssueChallenge() http.HandlerFunc {
+func handleIssueChallenge(server *sqrl.Server) http.HandlerFunc {
 	indexTemplate := template.Must(template.New("index").Parse(indexTemplateString))
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		loginURL := createLoginURL(r, "localhost:8080")
-		qrCode, _ := createQRCode(loginURL) // TODO handle error case
-
+		loginURL, qrCode := sqrlhttp.GenerateChallenge(server, r, "localhost:8080")
 		data := struct {
 			LoginURL    string
 			LoginQRCode string
 		}{
 			LoginURL:    loginURL,
-			LoginQRCode: qrCode,
+			LoginQRCode: base64.StdEncoding.EncodeToString(qrCode),
 		}
 
 		indexTemplate.Execute(w, data)
 	}
-}
-
-func createLoginURL(r *http.Request, domain string) string {
-	nonce := sqrl.Next(r)
-	return fmt.Sprintf("sqrl://%s/sqrl?%s", domain, nonce)
-}
-
-func createQRCode(URL string) (string, error) {
-	png, err := qrcode.Encode(URL, qrcode.Medium, 256)
-	if err != nil {
-		return "", err
-	}
-	return base64.StdEncoding.EncodeToString(png), nil
 }

@@ -24,7 +24,7 @@ const invalidQuerySignature = "client=dmVyPTENCmNtZD1xdWVyeQ0KaWRrPVpIa2RQTDM0eW
 const validQueryBody = "client=dmVyPTENCmNtZD1xdWVyeQ0KaWRrPVpIa2RQTDM0eWFhSmR5aUtVT1F1SS1zMmtqei1uSGcwVU5RMFpBcjZlZHMNCg&server=c3FybDovL3d3dy5ncmMuY29tL3Nxcmw_bnV0PUNYam9xNVJla3FTNUQ1d3V5QktMUlEmc2ZuPVIxSkQ&ids=JqY1dMvWFunVSykecky3pM21KtW67gegPxcEpiA2obUzb1igxrLrEj5hI9QPZb8dIAnn8TtYSpPj4mRFFqNcAA"
 
 func TestAuthenticateReturnsClientErrorWhenContentTypeIsNotFormEncoded(t *testing.T) {
-	h := sqrlhttp.Authenticate(NewDelegate())
+	h := sqrlhttp.Authenticate(anyServer(), NewDelegate())
 	w, r := setupAuthenticate(emptyBody)
 	r.Header.Set("Content-Type", "application/json")
 
@@ -42,7 +42,7 @@ func TestAuthenticateReturnsClientErrorWhenContentTypeIsNotFormEncoded(t *testin
 // TODO: Invalid Server Param
 
 func TestAuthenticateReturnsClientFailureWhenClientParamIsMissing(t *testing.T) {
-	h := sqrlhttp.Authenticate(NewDelegate())
+	h := sqrlhttp.Authenticate(anyServer(), NewDelegate())
 	w, r := setupAuthenticate(fmt.Sprintf("server=%s", validServer))
 	h.ServeHTTP(w, r)
 
@@ -65,7 +65,7 @@ func TestAuthenticateReturnsClientFailureWhenClientStringIsInvalid(t *testing.T)
 		{"VerComesSecond", b64("cmd=query\nver=1")},
 	}
 
-	h := sqrlhttp.Authenticate(NewDelegate())
+	h := sqrlhttp.Authenticate(anyServer(), NewDelegate())
 
 	for _, test := range cases {
 		t.Run(test.Name, func(t *testing.T) {
@@ -83,7 +83,7 @@ func TestAuthenticateReturnsClientFailureWhenClientStringIsInvalid(t *testing.T)
 
 func TestAuthenticateReturnsCurrentIDMatchWhenIDIsKnown(t *testing.T) {
 	w, r := setupAuthenticate(validQueryBody)
-	h := sqrlhttp.Authenticate(NewDelegate().ReturnsKnownIdentity())
+	h := sqrlhttp.Authenticate(anyServer(), NewDelegate().ReturnsKnownIdentity())
 
 	h.ServeHTTP(w, r)
 
@@ -95,7 +95,7 @@ func TestAuthenticateReturnsCurrentIDMatchWhenIDIsKnown(t *testing.T) {
 
 func TestAuthenticateReturnsClientErrorWhenSignatureInvalid(t *testing.T) {
 	w, r := setupAuthenticate(invalidQuerySignature)
-	h := sqrlhttp.Authenticate(NewDelegate())
+	h := sqrlhttp.Authenticate(anyServer(), NewDelegate())
 
 	h.ServeHTTP(w, r)
 
@@ -115,4 +115,8 @@ func setupAuthenticate(body string) (*httptest.ResponseRecorder, *http.Request) 
 	r.Header.Set("User-Agent", "SQRL/1")
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	return w, r
+}
+
+func anyServer() *sqrl.Server {
+	return sqrl.Configure(make([]byte, 16))
 }

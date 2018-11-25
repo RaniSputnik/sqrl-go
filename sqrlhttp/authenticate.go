@@ -19,9 +19,9 @@ func serverError(response *sqrl.ServerMsg) {
 	response.Tif |= sqrl.TIFCommandFailed
 }
 
-func Authenticate(delegate Delegate) http.Handler {
+func Authenticate(server *sqrl.Server, delegate Delegate) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		response := genNextResponse(r)
+		response := genNextResponse(server, r)
 		defer writeResponse(w, response)
 
 		if r.Header.Get("Content-Type") != xFormURLEncoded {
@@ -68,8 +68,8 @@ func Authenticate(delegate Delegate) http.Handler {
 	})
 }
 
-func genNextResponse(r *http.Request) *sqrl.ServerMsg {
-	nextNut := sqrl.Next(r)
+func genNextResponse(server *sqrl.Server, r *http.Request) *sqrl.ServerMsg {
+	nextNut := server.Nut(clientID(r))
 	return &sqrl.ServerMsg{
 		Ver: v1Only,
 		Nut: nextNut,
