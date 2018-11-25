@@ -13,7 +13,7 @@ import (
 
 // NoClientID is used to represent a nut that will not
 // perform any client identification check when validated.
-var NoClientID = ""
+const NoClientID = ""
 
 var noClientIDBytes = make([]byte, 4)
 

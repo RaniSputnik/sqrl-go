@@ -70,6 +70,13 @@ func TestValidate(t *testing.T) {
 		assert.False(t, server.Validate(nutWithComplexClient, nonmatchClientID))
 	})
 
+	t.Run("ReturnsFalseWhenNoClientIDDoesNotMatch", func(t *testing.T) {
+		// This case would defeat the client ID check if not implemented correctly
+		// We should not be able to provide 'NoClientID' when validating a nut
+		// that was created with a valid client id.
+		assert.False(t, server.Validate(validNut, sqrl.NoClientID))
+	})
+
 	t.Run("ReturnsFalseWhenNutHasExpired", func(t *testing.T) {
 		shortExpiry := time.Millisecond * 5
 		serverWithShortExpiry := sqrl.Configure(anyKey).WithNutExpiry(shortExpiry)
