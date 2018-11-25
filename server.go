@@ -5,7 +5,35 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
+
+// Server is a SQRL compliant server configured
+// with nut encryption keys and expiry times.
+type Server struct {
+	key       []byte
+	nutExpiry time.Duration
+}
+
+// Configure creates a new SQRL server
+// with the given encryption key and a
+// default nut expiry of 5 minutes.
+// TODO: Key rotation
+func Configure(key []byte) *Server {
+	padKeyIfRequired(key)
+	return &Server{key, time.Minute * 5}
+}
+
+func padKeyIfRequired(key []byte) {
+}
+
+// WithNutExpiry sets the window of time within which
+// a nut is considered to be valid.
+func (s *Server) WithNutExpiry(d time.Duration) *Server {
+	// TODO: Mutex?
+	s.nutExpiry = d
+	return s
+}
 
 // ServerMsg is used to represent the values
 // sent from the server to the client.
