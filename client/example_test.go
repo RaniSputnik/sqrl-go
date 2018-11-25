@@ -14,7 +14,7 @@ import (
 
 func TestExampleServer(t *testing.T) {
 	httpClient := &http.Client{Timeout: time.Second * 5}
-	req, err := http.NewRequest(http.MethodGet, "http://localhost:8080", nil)
+	req, err := http.NewRequest(http.MethodGet, "http://localhost:8080/login", nil)
 	fatal(t, err)
 
 	resp, err := httpClient.Do(req)

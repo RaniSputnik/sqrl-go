@@ -1,23 +1,25 @@
 package main
 
 import (
-	"encoding/base64"
 	"fmt"
 	"log"
 	"net/http"
 
-	// TODO having to use text/template as html/template mangles
-	// the sqrl:// URL and instead turns it into a hash.
-	"text/template"
+	"html/template"
 
 	sqrl "github.com/RaniSputnik/sqrl-go"
 	"github.com/RaniSputnik/sqrl-go/sqrlhttp"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/securecookie"
+	"github.com/gorilla/sessions"
 )
 
 const indexTemplateString = `
+<h1>Welcome {{ .UserID }}</h1>
+`
+const loginTemplateString = `
 <h1>Login With SQRL</h1>
-<a href="{{ .LoginURL }}" target="_blank"><img src="data:image/png;base64,{{ .LoginQRCode }}" alt="SQRL Login" /></a>
+{{ .SQRL }}
 `
 
 func main() {
@@ -28,8 +30,10 @@ func main() {
 
 	d := &delegate{}
 	router := mux.NewRouter()
-	router.HandleFunc("/", handleIssueChallenge(sqrlServer)).Methods(http.MethodGet)
+	router.HandleFunc("/", handleIndex()).Methods(http.MethodGet)
+	router.HandleFunc("/login", handleIssueChallenge(sqrlServer)).Methods(http.MethodGet)
 	router.Handle("/sqrl", sqrlhttp.Authenticate(sqrlServer, d)).Methods(http.MethodPost)
+	router.HandleFunc("/sync.txt", handleSync()).Methods(http.MethodGet)
 
 	server := http.Server{
 		Addr:    fmt.Sprintf(":%d", port),
@@ -40,19 +44,43 @@ func main() {
 	log.Fatal(server.ListenAndServe())
 }
 
-func handleIssueChallenge(server *sqrl.Server) http.HandlerFunc {
+var store = sessions.NewCookieStore(securecookie.GenerateRandomKey(32))
+
+func handleIndex() http.HandlerFunc {
 	indexTemplate := template.Must(template.New("index").Parse(indexTemplateString))
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		loginURL, qrCode := sqrlhttp.GenerateChallenge(server, r, "localhost:8080")
-		data := struct {
-			LoginURL    string
-			LoginQRCode string
-		}{
-			LoginURL:    loginURL,
-			LoginQRCode: base64.StdEncoding.EncodeToString(qrCode),
+		session, _ := store.Get(r, "sess")
+		uid, authenticated := session.Values["uid"].(string)
+		if !authenticated {
+			http.Redirect(w, r, "/login", http.StatusFound)
+			return
 		}
 
+		data := struct{ UserID string }{UserID: uid}
 		indexTemplate.Execute(w, data)
+	}
+}
+
+// TODO: How might we move this into the SQRL library?
+func handleSync() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// TODO: check the users outstanding SQRL request
+		// If the users SQRL request has been accepted
+		// Then set an 'authenticated' cookie and return success
+		// The user will now be redirected to login
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte{})
+	}
+}
+
+func handleIssueChallenge(server *sqrl.Server) http.HandlerFunc {
+	loginTemplate := template.Must(template.New("login").Parse(loginTemplateString))
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		loginFragment := sqrlhttp.GenerateChallenge(server, r, "localhost:8080")
+		data := struct{ SQRL template.HTML }{SQRL: loginFragment}
+		loginTemplate.Execute(w, data)
 	}
 }
