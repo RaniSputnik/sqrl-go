@@ -16,7 +16,7 @@ const syncJS = `'use strict';
 // The first function produces a periodic (every 500ms) host server probe which
 // checks to see whether anything has changed (the user has authenticated) and
 // the page should be refreshed to show the updated status. This queries SQRL's
-// webserver for a 'sync.txt' page. When the returned data differs from the data 
+// webserver for a 'sync.txt' page. When the returned data differs from the data
 // it first obtained, a refresh/reload of the page is triggered.
 //
 // The second function converts a user click or touch action on the SQRL QR code
@@ -54,7 +54,7 @@ window.onload = function() {
 	}
  }
 
- 
+
 // =============================================================================
 // checkForChange forms a polling loop by continually re-calling itself after a
 // 500ms (half second) delay, until the 'stopPolling' boolean is set when the
@@ -65,8 +65,8 @@ window.onload = function() {
 // to reflect the new status. This supports both cross-device logon and any
 // situation where localhost:25519 CPS support is unavailable for any reason.
 function checkForChange() {
-	if (document.hidden) {					// before probing for any page change, we check to 
-		setTimeout(checkForChange, 5000);   // see whether the page is visible. If the user is 
+	if (document.hidden) {					// before probing for any page change, we check to
+		setTimeout(checkForChange, 5000);   // see whether the page is visible. If the user is
 		return;								// not viewing the page, check again in 5 seconds.
 	}
 	syncQuery.open( 'GET', 'sync.txt' );	// the page is visible, so let's check for any update
@@ -78,10 +78,10 @@ function checkForChange() {
 					document.location.href = document.location.pathname.substring(location.pathname.lastIndexOf("/") + 1);
 				} else {
 					lastSync = newSync;
-				}	
+				}
 			}
 			setTimeout(checkForChange, 500); // after every query, successful or not, retrigger after 500msc.
-		}	
+		}
 	};
 	syncQuery.send(); // initiate the query to the 'sync.txt' object.
 }
