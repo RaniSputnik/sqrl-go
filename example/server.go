@@ -22,6 +22,10 @@ const loginTemplateString = `
 {{ .SQRL }}
 `
 
+var logins = &challengeStore{
+	vals: make(map[string]LoginState),
+}
+
 func main() {
 	port := 8080
 
@@ -32,8 +36,17 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/", handleIndex()).Methods(http.MethodGet)
 	router.HandleFunc("/login", handleIssueChallenge(sqrlServer)).Methods(http.MethodGet)
+	router.HandleFunc("/logout", handleLogout()).Methods(http.MethodGet)
 	router.Handle("/sqrl", sqrlhttp.Authenticate(sqrlServer, d)).Methods(http.MethodPost)
 	router.HandleFunc("/sync.txt", handleSync()).Methods(http.MethodGet)
+
+	// TODO: Remove this once we have SQRL login working
+	// For now this is just for testing sync
+	router.HandleFunc("/login/bypass", func(w http.ResponseWriter, r *http.Request) {
+		session, _ := store.Get(r, "sess")
+		challenge := session.Values["challenge"].(string)
+		logins.Set(challenge, LoginStateAuthenticated)
+	})
 
 	server := http.Server{
 		Addr:    fmt.Sprintf(":%d", port),
@@ -65,13 +78,23 @@ func handleIndex() http.HandlerFunc {
 // TODO: How might we move this into the SQRL library?
 func handleSync() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// TODO: check the users outstanding SQRL request
-		// If the users SQRL request has been accepted
-		// Then set an 'authenticated' cookie and return success
-		// The user will now be redirected to login
+		session, _ := store.Get(r, "sess")
+		challenge := session.Values["challenge"].(string)
 
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte{})
+		fmt.Printf("Sync: Retrieving challenge %s\n", challenge)
+		loginState := logins.Get(challenge)
+
+		fmt.Printf("Sync: Current login state = %s\n", loginState)
+		if loginState == LoginStateAuthenticated {
+			// TODO: Check IP still matches the original challenge
+			session.Values["uid"] = "TODO: Set the user ID"
+			session.Save(r, w)
+			w.Write([]byte("authenticated"))
+			fmt.Println("Sync: Authentication successfull!")
+			return
+		}
+
+		w.Write([]byte("not authenticated"))
 	}
 }
 
@@ -79,8 +102,32 @@ func handleIssueChallenge(server *sqrl.Server) http.HandlerFunc {
 	loginTemplate := template.Must(template.New("login").Parse(loginTemplateString))
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		loginFragment := sqrlhttp.GenerateChallenge(server, r, "localhost:8080")
+		challenge, loginFragment := sqrlhttp.GenerateChallenge(server, r, "localhost:8080")
+		must(logins.Set(challenge, LoginStateIssued))
+		fmt.Printf("Issue: New challenge = %s", challenge)
+
+		session, _ := store.Get(r, "sess")
+		session.Values["challenge"] = challenge
+		session.Save(r, w)
+
 		data := struct{ SQRL template.HTML }{SQRL: loginFragment}
 		loginTemplate.Execute(w, data)
+	}
+}
+
+func handleLogout() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		session, _ := store.Get(r, "sess")
+		delete(session.Values, "challenge")
+		delete(session.Values, "uid")
+		session.Save(r, w)
+
+		http.Redirect(w, r, "/", http.StatusFound)
+	}
+}
+
+func must(err error) {
+	if err != nil {
+		panic(err)
 	}
 }

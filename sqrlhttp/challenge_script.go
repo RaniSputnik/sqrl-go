@@ -75,7 +75,8 @@ function checkForChange() {
 			if ( syncQuery.status === 200 ) {
 				newSync = syncQuery.responseText;
 				if (lastSync && lastSync !== newSync) {
-					document.location.href = document.location.pathname.substring(location.pathname.lastIndexOf("/") + 1);
+					console.log('Sync state has changed!')
+					document.location.href = "/"
 				} else {
 					lastSync = newSync;
 				}
