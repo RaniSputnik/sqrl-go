@@ -77,9 +77,15 @@ func handleIndex() http.HandlerFunc {
 
 // TODO: How might we move this into the SQRL library?
 func handleSync() http.HandlerFunc {
+	notAuthenticated := []byte("not authenticated")
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		session, _ := store.Get(r, "sess")
-		challenge := session.Values["challenge"].(string)
+		challenge, ok := session.Values["challenge"].(string)
+		if !ok {
+			w.Write(notAuthenticated)
+			return
+		}
 
 		fmt.Printf("Sync: Retrieving challenge %s\n", challenge)
 		loginState := logins.Get(challenge)
@@ -94,7 +100,7 @@ func handleSync() http.HandlerFunc {
 			return
 		}
 
-		w.Write([]byte("not authenticated"))
+		w.Write(notAuthenticated)
 	}
 }
 
