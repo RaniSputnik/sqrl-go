@@ -108,7 +108,7 @@ func handleIssueChallenge(server *sqrl.Server) http.HandlerFunc {
 	loginTemplate := template.Must(template.New("login").Parse(loginTemplateString))
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		challenge, loginFragment := sqrlhttp.GenerateChallenge(server, r, "localhost:8080")
+		challenge, loginFragment := sqrlhttp.GenerateChallenge(server, r)
 		must(logins.Set(challenge, LoginStateIssued))
 		fmt.Printf("Issue: New challenge = %s", challenge)
 
