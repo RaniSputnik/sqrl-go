@@ -74,10 +74,7 @@ func (s *Server) Nut(clientIdentifier string) Nut {
 	nut[11] = byte(count)
 
 	//  31 bits: pseudo-random noise from system source.
-	noise := make([]byte, 4)
-	if _, err := io.ReadFull(rand.Reader, noise); err != nil {
-		panic(err.Error())
-	}
+	noise := randBytes(4)
 	nut[12] = noise[0]
 	nut[13] = noise[1]
 	nut[14] = noise[2]
@@ -86,11 +83,7 @@ func (s *Server) Nut(clientIdentifier string) Nut {
 	//   1  bit: flag bit to indicate source: QRcode or URL click
 	// TODO
 
-	nonce := make([]byte, s.aesgcm.NonceSize())
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		panic(err.Error())
-	}
-
+	nonce := randBytes(s.aesgcm.NonceSize())
 	encryptedNut := s.aesgcm.Seal(nil, nonce, nut, nil)
 	encryptedNutAndNonce := append(nonce, encryptedNut...)
 	return Nut(Base64.EncodeToString(encryptedNutAndNonce))
@@ -153,4 +146,18 @@ func nutClientIDBytes(clientIdentifier string) []byte {
 	}
 	hashedClientID := md5.Sum([]byte(clientIdentifier))
 	return hashedClientID[:4]
+}
+
+func randBytes(length int) []byte {
+	noise := make([]byte, length)
+	if _, err := io.ReadFull(rand.Reader, noise); err != nil {
+		// Nut generation does not currently return
+		// an error as there is little recourse available
+		// to a consumer.
+		// It is probably safe to assume that a failure
+		// to read random noise is a non-recoverable error.
+		// This is an assumption that should be tested.
+		panic(err.Error())
+	}
+	return noise
 }
