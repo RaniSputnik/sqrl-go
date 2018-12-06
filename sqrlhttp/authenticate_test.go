@@ -23,6 +23,8 @@ const invalidQuerySignature = "client=dmVyPTENCmNtZD1xdWVyeQ0KaWRrPVpIa2RQTDM0eW
 
 const validQueryBody = "client=dmVyPTENCmNtZD1xdWVyeQ0KaWRrPVpIa2RQTDM0eWFhSmR5aUtVT1F1SS1zMmtqei1uSGcwVU5RMFpBcjZlZHMNCg&server=c3FybDovL3d3dy5ncmMuY29tL3Nxcmw_bnV0PUNYam9xNVJla3FTNUQ1d3V5QktMUlEmc2ZuPVIxSkQ&ids=JqY1dMvWFunVSykecky3pM21KtW67gegPxcEpiA2obUzb1igxrLrEj5hI9QPZb8dIAnn8TtYSpPj4mRFFqNcAA"
 
+const validIdentBody = "client=dmVyPTENCmNtZD1pZGVudA0KaWRrPVpIa2RQTDM0eWFhSmR5aUtVT1F1SS1zMmtqei1uSGcwVU5RMFpBcjZlZHMNCg&server=dmVyPTENCm51dD01aHFaS3VIeXE1dDZ5Mmlmb1czd1B3DQp0aWY9NQ0KcXJ5PS9zcXJsP251dD01aHFaS3VIeXE1dDZ5Mmlmb1czd1B3DQo&ids=z__MvVTGpeDLLPj3O9QLNrkcvsk_8iuipu-DWalCfQWuP1xXom3HW1MhXNOYYhYiO2Kx2qMgT3D0uze3hdYLDg"
+
 func TestAuthenticateReturnsClientErrorWhenContentTypeIsNotFormEncoded(t *testing.T) {
 	h := sqrlhttp.Authenticate(anyServer(), NewDelegate())
 	w, r := setupAuthenticate(emptyBody)
@@ -89,7 +91,19 @@ func TestAuthenticateReturnsCurrentIDMatchWhenIDIsKnown(t *testing.T) {
 
 	got, err := sqrl.ParseServer(w.Body.String())
 	if assert.NoError(t, err) {
-		assert.True(t, got.Is(sqrl.TIFCurrentIDMatch), "Expected ID match")
+		assert.True(t, got.Is(sqrl.TIFCurrentIDMatch), "Expected 'TIFCurrentIDMatch' flag to be set")
+	}
+}
+
+func TestAuthenticateReturnsNoIDMatchWhenIDIsUnknown(t *testing.T) {
+	w, r := setupAuthenticate(validQueryBody)
+	h := sqrlhttp.Authenticate(anyServer(), NewDelegate().ReturnsUnknownIdentity())
+
+	h.ServeHTTP(w, r)
+
+	got, err := sqrl.ParseServer(w.Body.String())
+	if assert.NoError(t, err) {
+		assert.False(t, got.Is(sqrl.TIFCurrentIDMatch), "Expected 'TIFCurrentIDMatch' flag to not be set")
 	}
 }
 
@@ -103,6 +117,20 @@ func TestAuthenticateReturnsClientErrorWhenSignatureInvalid(t *testing.T) {
 	if assert.NoError(t, err) {
 		assert.True(t, got.Is(sqrl.TIFClientFailure), "Expected client failure")
 	}
+}
+
+func TestAuthenticateCallsDelegateAuthenticatedWhenIdentSuccessful(t *testing.T) {
+	delegate := NewDelegate().ReturnsKnownIdentity()
+	w, r := setupAuthenticate(validIdentBody)
+	h := sqrlhttp.Authenticate(anyServer(), delegate)
+
+	h.ServeHTTP(w, r)
+
+	// TODO: this assertion fails in a really unintuitive way when
+	// this test fails - see if we can improve this.
+	assert.Equal(t,
+		sqrl.Identity("ZHkdPL34yaaJdyiKUOQuI-s2kjz-nHg0UNQ0ZAr6eds"),
+		delegate.Func.Authenticated.CalledWith.Id)
 }
 
 func b64(in string) string {

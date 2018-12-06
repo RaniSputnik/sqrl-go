@@ -18,6 +18,15 @@ type mockDelegate struct {
 				Err     error
 			}
 		}
+		Authenticated struct {
+			CalledWith struct {
+				Ctx context.Context
+				Id  sqrl.Identity
+			}
+			Returns struct {
+				Err error
+			}
+		}
 	}
 }
 
@@ -25,6 +34,12 @@ func (m *mockDelegate) Known(ctx context.Context, id sqrl.Identity) (bool, error
 	m.Func.Known.CalledWith.Ctx = ctx
 	m.Func.Known.CalledWith.Id = id
 	return m.Func.Known.Returns.IsKnown, m.Func.Known.Returns.Err
+}
+
+func (m *mockDelegate) Authenticated(ctx context.Context, id sqrl.Identity) error {
+	m.Func.Authenticated.CalledWith.Ctx = ctx
+	m.Func.Authenticated.CalledWith.Id = id
+	return m.Func.Authenticated.Returns.Err
 }
 
 // Language helpers

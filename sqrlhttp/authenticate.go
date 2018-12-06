@@ -59,6 +59,7 @@ func Authenticate(server *sqrl.Server, delegate Delegate) http.Handler {
 
 		// TODO: Test for IP Match
 
+		// TODO: Pass previous identities to "known"
 		isKnown, err := delegate.Known(r.Context(), client.Idk)
 		if err != nil {
 			log.Printf("Failed to process response: %v", err)
@@ -66,6 +67,18 @@ func Authenticate(server *sqrl.Server, delegate Delegate) http.Handler {
 			return
 		} else if isKnown {
 			response.Tif |= sqrl.TIFCurrentIDMatch
+		}
+
+		switch client.Cmd {
+		case sqrl.CmdIdent:
+			delegate.Authenticated(r.Context(), client.Idk)
+
+		case sqrl.CmdQuery:
+			// Do nothing
+
+		default:
+			// In all other cases, not supported
+			response.Tif |= sqrl.TIFFunctionNotSupported
 		}
 	})
 }
