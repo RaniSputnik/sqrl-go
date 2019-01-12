@@ -62,6 +62,10 @@ func (m *ServerMsg) Is(flag TIF) bool {
 // parameter into the component parts.
 func ParseServer(raw string) (*ServerMsg, error) {
 	vals, err := parseMsg(raw)
+	if err != nil {
+		return nil, err
+	}
+
 	if len(vals) < 4 {
 		return nil, errors.New("missing one or more required parameters (ver,nut,tif,qry)")
 	}

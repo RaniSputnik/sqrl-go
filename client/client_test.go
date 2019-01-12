@@ -25,6 +25,7 @@ func TestLogin(t *testing.T) {
 		var receivedRequest *http.Request
 		s := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			receivedRequest = r
+			//nolint:errcheck
 			w.Write([]byte(serverResponseKnownUser))
 		}))
 		defer s.Close()

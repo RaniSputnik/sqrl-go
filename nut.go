@@ -118,11 +118,7 @@ func (s *Server) Validate(returned Nut, clientIdentifier string) bool {
 
 	timeSeconds := binary.BigEndian.Uint32(decryptedNut[4:8])
 	t := time.Unix(int64(timeSeconds), 0)
-	if time.Since(t) > s.nutExpiry {
-		return false
-	}
-
-	return true
+	return time.Since(t) <= s.nutExpiry
 }
 
 func (s *Server) decryptNut(encrypted Nut) ([]byte, error) {
