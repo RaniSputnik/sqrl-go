@@ -21,7 +21,7 @@ func serverError(response *sqrl.ServerMsg) {
 
 func Authenticate(server *sqrl.Server, delegate Delegate) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("Got SQRL request: %v", r)
+		log.Printf("Got SQRL request: %v\n", r)
 
 		response := genNextResponse(server, r)
 		defer writeResponse(w, response)
@@ -32,7 +32,7 @@ func Authenticate(server *sqrl.Server, delegate Delegate) http.Handler {
 		}
 
 		if err := r.ParseForm(); err != nil {
-			log.Printf("Failed to parse form: %s", err)
+			log.Printf("Failed to parse form: %s\n", err)
 			clientFailure(response)
 			return
 		}
@@ -62,7 +62,7 @@ func Authenticate(server *sqrl.Server, delegate Delegate) http.Handler {
 		// TODO: Pass previous identities to "known"
 		isKnown, err := delegate.Known(r.Context(), client.Idk)
 		if err != nil {
-			log.Printf("Failed to process response: %v", err)
+			log.Printf("Failed to process response: %v\n", err)
 			serverError(response)
 			return
 		} else if isKnown {
@@ -71,7 +71,11 @@ func Authenticate(server *sqrl.Server, delegate Delegate) http.Handler {
 
 		switch client.Cmd {
 		case sqrl.CmdIdent:
-			delegate.Authenticated(r.Context(), client.Idk)
+			err := delegate.Authenticated(r.Context(), client.Idk)
+			if err != nil {
+				log.Fatalf("Failed to check authenticated: %v\n", err)
+				serverError(response)
+			}
 
 		case sqrl.CmdQuery:
 			// Do nothing
@@ -101,5 +105,7 @@ func writeResponse(w http.ResponseWriter, response *sqrl.ServerMsg) {
 	// implementation does. Should probably question the use
 	// of this content type given it's not in the form key=value.
 	w.Header().Set("Content-Type", xFormURLEncoded)
-	w.Write([]byte(encoded))
+	if _, err := w.Write([]byte(encoded)); err != nil {
+		panic(err) // TODO: What to do here?
+	}
 }
