@@ -1,9 +1,9 @@
-package sqrlhttp_test
+package ssp_test
 
 import (
 	"context"
 
-	"github.com/RaniSputnik/sqrl-go"
+	sqrl "github.com/RaniSputnik/sqrl-go"
 )
 
 type mockDelegate struct {

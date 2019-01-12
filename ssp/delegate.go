@@ -1,9 +1,9 @@
-package sqrlhttp
+package ssp
 
 import (
 	"context"
 
-	"github.com/RaniSputnik/sqrl-go"
+	sqrl "github.com/RaniSputnik/sqrl-go"
 )
 
 // Delegate is an interface that allows a service to implement

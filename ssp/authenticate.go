@@ -1,10 +1,10 @@
-package sqrlhttp
+package ssp
 
 import (
 	"log"
 	"net/http"
 
-	"github.com/RaniSputnik/sqrl-go"
+	sqrl "github.com/RaniSputnik/sqrl-go"
 )
 
 const xFormURLEncoded = "application/x-www-form-urlencoded"

@@ -1,4 +1,4 @@
-package sqrlhttp
+package ssp
 
 import (
 	"encoding/base64"
@@ -30,7 +30,7 @@ func requestDomain(r *http.Request) string {
 // The script will redirect the user once login has been completed.
 func GenerateChallenge(server *sqrl.Server, r *http.Request) (string, template.HTML) {
 	// TODO: How might we remove QR code generation from here and keep the API super simple
-	// TODO: How might we include the sync endpoint handling in the sqrlhttp package?
+	// TODO: How might we include the sync endpoint handling in the ssp package?
 	nonce := server.Nut(clientID(r))
 	loginURL := fmt.Sprintf("sqrl://%s/sqrl?nut=%s", requestDomain(r), nonce)
 	qrCode, _ := qrcode.Encode(loginURL, qrcode.Medium, 256) // TODO: What to do if QR Code generation fails?

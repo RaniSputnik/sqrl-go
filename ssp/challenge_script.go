@@ -1,4 +1,4 @@
-package sqrlhttp
+package ssp
 
 // Copied from https://www.grc.com/sqrl/demo/pagesync.js
 const syncJS = `'use strict';

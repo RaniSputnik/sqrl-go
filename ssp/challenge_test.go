@@ -1,4 +1,4 @@
-package sqrlhttp_test
+package ssp_test
 
 import (
 	"net/http"
@@ -6,10 +6,9 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/RaniSputnik/sqrl-go"
+	sqrl "github.com/RaniSputnik/sqrl-go"
+	"github.com/RaniSputnik/sqrl-go/ssp"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/RaniSputnik/sqrl-go/sqrlhttp"
 )
 
 func TestGenerateChallenge(t *testing.T) {
@@ -18,7 +17,7 @@ func TestGenerateChallenge(t *testing.T) {
 	getLoginRequest := httptest.NewRequest(http.MethodGet, "https://example.com/login", nil)
 
 	t.Run("ReturnsAURLWithTheCorrectDomain", func(t *testing.T) {
-		requestURL, _ := sqrlhttp.GenerateChallenge(mockServer, getLoginRequest)
+		requestURL, _ := ssp.GenerateChallenge(mockServer, getLoginRequest)
 
 		got, err := url.Parse(requestURL)
 		assert.NoError(t, err)

@@ -8,7 +8,7 @@ import (
 	"html/template"
 
 	sqrl "github.com/RaniSputnik/sqrl-go"
-	"github.com/RaniSputnik/sqrl-go/sqrlhttp"
+	"github.com/RaniSputnik/sqrl-go/ssp"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
@@ -37,7 +37,7 @@ func main() {
 	router.HandleFunc("/", handleIndex()).Methods(http.MethodGet)
 	router.HandleFunc("/login", handleIssueChallenge(sqrlServer)).Methods(http.MethodGet)
 	router.HandleFunc("/logout", handleLogout()).Methods(http.MethodGet)
-	router.Handle("/sqrl", sqrlhttp.Authenticate(sqrlServer, d)).Methods(http.MethodPost)
+	router.Handle("/sqrl", ssp.Authenticate(sqrlServer, d)).Methods(http.MethodPost)
 	router.HandleFunc("/sync.txt", handleSync()).Methods(http.MethodGet)
 
 	// TODO: Remove this once we have SQRL login working
@@ -108,7 +108,7 @@ func handleIssueChallenge(server *sqrl.Server) http.HandlerFunc {
 	loginTemplate := template.Must(template.New("login").Parse(loginTemplateString))
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		challenge, loginFragment := sqrlhttp.GenerateChallenge(server, r)
+		challenge, loginFragment := ssp.GenerateChallenge(server, r)
 		must(logins.Set(challenge, LoginStateIssued))
 		fmt.Printf("Issue: New challenge = %s", challenge)
 
