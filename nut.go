@@ -23,6 +23,10 @@ var nuts uint32
 // metadata about the request that it was derived from.
 type Nut string
 
+func (n Nut) String() string {
+	return string(n)
+}
+
 // Nut returns a challenge that should be returned to
 // SQRL client for signing.
 //
