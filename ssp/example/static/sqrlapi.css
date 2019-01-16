@@ -12,3 +12,32 @@ em { font-weight:bold; font-family:Arial, Helvetica, sans-serif; font-style: nor
 .mono { color:#000; font-family: 'Lucia Console', Consolas, 'Courier New', Courier, monospace; font-size: 13pt; }
 .sqid { font-weight:normal; font-size:11pt; padding-left:1em; }
 .sect { background:#ddf; color:#006; width:80%; padding:0.25em; margin-top:1em; border-top:#006 1px solid; }
+
+#sqrl {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: .4rem;
+    border-radius: .4rem;
+    
+    font-size: 1rem;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    text-decoration: none;
+    line-height: 1.6rem;
+
+    background: #007cc3;
+    color: white;
+    -webkit-transition: background-color .3s; /* Safari */
+    transition: background-color .3s;
+    overflow: hidden;
+}
+
+#sqrl:hover {
+    background: #006ead;
+}
+
+#sqrl img {
+    width: 1.6rem;
+    height: 1.6rem;
+    margin-right: .4rem;
+}
