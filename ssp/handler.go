@@ -17,7 +17,7 @@ func Handler(key []byte) http.Handler {
 	s := sqrl.Configure(key)
 
 	// TODO: Why does this redirect when used with StripPrefix?
-	r := mux.NewRouter()
+	r := mux.NewRouter().StrictSlash(false)
 
 	r.HandleFunc("/nut.json", nutHandler(s, logger))
 	return r
