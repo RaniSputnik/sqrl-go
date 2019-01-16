@@ -27,7 +27,7 @@ function getSqrlNut() {
                 var res = JSON.parse(syncQuery2.responseText);
                 sqrlNut = res.nut;
                 sqrlUrl = sqrlApiDomain.replace('https:', 'sqrl:') + '/cli.sqrl?nut=' + sqrlNut;
-                sqrlPng = sqrlApiDomain + '/png.sqrl?nut=' + sqrlNut;
+                sqrlPng = sqrlApiDomain + '/qr.png?nut=' + sqrlNut;
                 if (x = document.getElementById("sqrl")) x.href = sqrlUrl;
                 if (x = document.getElementById("qrimg")) x.src = sqrlPng;
                 pollForNextPage();	// start our next page checking
