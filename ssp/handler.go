@@ -19,9 +19,7 @@ func Handler(key []byte) http.Handler {
 	logger := log.New(os.Stdout, "", 0)
 	s := sqrl.Configure(key)
 
-	// TODO: Why does this redirect when used with StripPrefix?
 	r := mux.NewRouter().StrictSlash(false)
-
 	r.HandleFunc("/nut.json", nutHandler(s, logger))
 	r.HandleFunc("/qr.png", qrHandler(s, logger))
 	return r
@@ -71,7 +69,7 @@ func qrHandler(server *sqrl.Server, logger *log.Logger) http.HandlerFunc {
 			return
 		}
 
-		//w.Header().Set("Content-Type", "image/png")
+		w.Header().Set("Content-Type", "image/png")
 		w.WriteHeader(http.StatusOK)
 		if _, err := w.Write(bytes); err != nil {
 			logger.Printf("QR code write unsuccessful: %v", err)
