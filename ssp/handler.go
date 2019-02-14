@@ -86,3 +86,14 @@ func atoiWithDefault(val string, def int) int {
 		return res
 	}
 }
+
+func clientID(r *http.Request) string {
+	// TODO: X-Forwarded-For
+	// TODO: Include user agent if available
+	return r.RemoteAddr
+}
+
+func requestDomain(r *http.Request) string {
+	// TODO: Do we need to do anything special here for proxies?
+	return r.Host
+}
