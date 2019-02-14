@@ -1,7 +1,7 @@
 package ssp
 
 // Copied from https://www.grc.com/sqrl/demo/pagesync.js
-const syncJS = `'use strict';
+/*const syncJS = `'use strict';
 //******************************************************************************
 //           This is reference/sample JavaScript support for SQRL
 //------------------------------------------------------------------------------
@@ -125,4 +125,4 @@ function sqrlLinkClick(e) {
 	encodedSqrlUrl = e.getAttribute('encoded-sqrl-url');
 	// if we have an encoded URL to jump to, initiate our GIF probing before jumping
 	if ( encodedSqrlUrl ) { gifProbe.onerror(); };	// trigger the initial image probe query
-}`
+}`*/
