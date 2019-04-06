@@ -23,6 +23,9 @@ func Authenticate(server *sqrl.Server, delegate Delegate) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Got SQRL request: %v\n", r)
 
+		// Reference implementation here
+		// https://github.com/Novators/libsqrl/blob/c/src/server_protocol.c
+
 		response := genNextResponse(server, r)
 		defer writeResponse(w, response)
 
@@ -39,6 +42,8 @@ func Authenticate(server *sqrl.Server, delegate Delegate) http.Handler {
 
 		clientRaw := r.Form.Get("client")
 		serverRaw := r.Form.Get("server")
+		ids := sqrl.Signature(r.Form.Get("ids"))
+		// TODO: pids
 
 		client, errc := sqrl.ParseClient(clientRaw)
 		// Ensure that it is the URL / params we sent
@@ -50,12 +55,15 @@ func Authenticate(server *sqrl.Server, delegate Delegate) http.Handler {
 
 		// TODO: Verify server parameter in some way
 
-		ids := sqrl.Signature(r.Form.Get("ids"))
 		signedPayload := clientRaw + serverRaw
 		if !ids.Verify(client.Idk, signedPayload) {
 			clientFailure(response)
 			return
 		}
+		// TODO: Verify previous identity signatures
+
+		// TODO: Fetch user details
+		// TODO: Fetch user from previous identity
 
 		// TODO: Test for IP Match
 

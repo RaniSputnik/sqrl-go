@@ -1,0 +1,15 @@
+# github.com/davecgh/go-spew v1.1.0
+github.com/davecgh/go-spew/spew
+# github.com/gorilla/mux v1.7.1
+github.com/gorilla/mux
+# github.com/pmezard/go-difflib v1.0.0
+github.com/pmezard/go-difflib/difflib
+# github.com/skip2/go-qrcode v0.0.0-20190110000554-dc11ecdae0a9
+github.com/skip2/go-qrcode
+github.com/skip2/go-qrcode/bitset
+github.com/skip2/go-qrcode/reedsolomon
+# github.com/stretchr/testify v1.3.0
+github.com/stretchr/testify/assert
+# golang.org/x/crypto v0.0.0-20190404164418-38d8ce5564a5
+golang.org/x/crypto/ed25519
+golang.org/x/crypto/ed25519/internal/edwards25519
