@@ -95,7 +95,10 @@ func TestClientMsgParse(t *testing.T) {
 			{"MissingIdkField", sqrl.Base64.EncodeToString([]byte("ver=1\ncmd=query"))},
 			{"MissingCmdField", sqrl.Base64.EncodeToString([]byte("ver=1\nidk=" + validIdk))},
 			{"MissingVerField", sqrl.Base64.EncodeToString([]byte("cmd=query\nidk=" + validIdk))},
-			{"VerNotFirst", sqrl.Base64.EncodeToString([]byte("cmd=query\nver=1\nidk=" + validIdk))},
+			// The Web extension does not lead with the version information
+			// TODO: Is this a bug in the extension? Or should we relax this constraint?
+			// https://github.com/RaniSputnik/sqrl-go/issues/12
+			// {"VerNotFirst", sqrl.Base64.EncodeToString([]byte("cmd=query\nver=1\nidk=" + validIdk))},
 		}
 
 		for _, testCase := range cases {
