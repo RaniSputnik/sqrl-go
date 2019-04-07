@@ -9,136 +9,140 @@
 </head>
 
 <body style="padding-bottom: 4em;" link="#CC0000" vlink="#006666" alink="#FF0000">
-  <center>
-    <table style="width:100%; padding-top:10px; padding-bottom:10px" bgcolor="black" border="0" cellpadding="0" cellspacing="0">
-      <tr valign=middle>
-        <td align=center>
-          <table border="0" cellpadding="0" cellspacing="0">
-            <tr valign="middle">
+  <table style="width:100%; padding-top:10px; padding-bottom:10px; background:black;" 
+    cellpadding="0" cellspacing="0">
+    <tr valign=middle>
+      <td>
+        <table cellpadding="0" cellspacing="0" style="margin: auto;">
+          <tr valign="middle">
+            <td>
+              <img src="/static/sqrlicon.svg" style="width:100px; height:100px; padding-right:2em;">
+            </td>
+            <td>
+              <b style="color:white; font-size:20pt; font-family:Verdana, Geneva, Arial, Helvetica, sans-serif;"> 
+                Golang SQRL Service Provider<br />
+                API Demo &amp; Exerciser
+              </b>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+  <div class="red_tight_headline" style="font-size:16pt; margin-top:0.5em;">SQRL Service Provider API Test &amp; Demo
+  </div>
+  <form method="post" autocomplete="off" style="text-align: center;">
+    <img id="probe" style="display:none;" src="http://www.rebindtest.com/open.gif">
+
+    <div id="mixed"
+      style="display:none; width:44em; background:#ffc; margin:2em 0 2em 0; border:#800 4px solid; padding:0.5em 1em 0.7em 1em;">
+      <span style="text-align:center; font-size:11pt;">This web browser is not retrieving mixed-content
+        images</span>
+      <div style="text-align:left; margin-top:0.5em;">This SQRL demo page checks for an installed and running SQRL
+        client by requesting a tiny GIF image from its built-in web server. But this web browser has been
+        configured to block the retrieval of passive mixed-content images. This is uncommon and is not the default
+        configuration for web browsers. If you are unable to allow passive mixed-content images you should disable
+        SQRL's anti-spoofing CPS protection, which is not recommended.</div>
+    </div>
+
+    <noscript>
+      <div style="width:45em; background:#ffc; margin:2em 0 2em 0; border:#b00 4px solid; padding:0.5em 1em 0.7em 1em;">
+        <span style="text-align:center; font-size:13pt;"><b>JavaScript is disabled on this page</b></span>
+        <div style="text-align:left; margin-top:0.5em;">SQRL can operate without JavaScript. GRC's SQRL demo pages
+          demonstrate script-free operation of SQRL. But scripting has become a default assumption and expectation
+          for web sites. And its presence allows for convenient SQRL automation such as automatic logged-on page
+          updating.&nbsp;&nbsp;<b>So this page requires JavaScript for its operation.</b></div>
+      </div>
+    </noscript>
+
+    <div style="margin-bottom:1em;"><b style="font-size:12pt;">This web browser is NOT currently logged into this
+        SQRL demonstration.</b></div>
+
+    <table cellspacing="0" cellpadding="0" style='margin: auto;'>
+      <tr>
+        <td style="text-align:center; font-family:Arial, Helvetica, sans-serif; font-size:9pt; color:#444;">
+          Click here to<br />
+          <a id="sqrl" href="sqrl://" onclick="gifProbe.onerror();return true;" tabindex="-1">
+            <img src=" /static/sqrloutline.svg" alt="SQRL Logo" />
+            <span>Sign in with SQRL</span>
+          </a>
+        </td>
+      </tr>
+      <tr>
+        <td style="text-align:center; padding:0.5em; color:#000;"><i>-or-</i></td>
+      </tr>
+      <tr>
+        <td>
+          <table cellspacing="0" cellpadding="0" style="border:1px #888 solid; padding:0.5em; background:#F0F0F0;">
+            <tr>
               <td>
-                <img src="/static/sqrlicon.svg" style="width:100px; height:100px; padding-right:2em;">
+                <table cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td>Username</td>
+                    <td><i style="color:#666; font-size:smaller;">(30 characters max)</i></td>
+                  </tr>
+                  <tr>
+                    <td colspan="2"><input type="text" name="user" value="" size="33" maxlength="30" autofocus />
+                    </td>
+                  </tr>
+                </table>
+                <table style="margin-top:0.25em;" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td>Password</td>
+                    <td><i style="color:#666; font-size:smaller;">(250 characters max)</i></td>
+                  </tr>
+                  <tr>
+                    <td colspan="2"><input type="text" name="pass" value="" size="33" maxlength="250" /></td>
+                  </tr>
+                </table>
               </td>
-              <td>
-                <font style="color:white; font-size:20pt; font-family:Verdana, Geneva, Arial, Helvetica, sans-serif;">
-                  <b>
-                    Golang SQRL Service Provider<br />
-                    API Demo &amp; Exerciser
-                  </b>
-                </font>
-              </td>
+            </tr>
+            <tr>
+              <td><input style="margin-top:0.5em;" type="submit" name="command"
+                  value="    Login    " />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input style="margin-top:0.5em;" type="submit"
+                  name="command" value="Create Account" /></td>
             </tr>
           </table>
         </td>
       </tr>
     </table>
-    <div class="red_tight_headline" style="font-size:16pt; margin-top:0.5em;">SQRL Service Provider API Test &amp; Demo</div>
-    <form method="post" autocomplete="off">
-      <center>
 
-        <img id="probe" style="display:none;" src="http://www.rebindtest.com/open.gif">
+    <div style="text-align:center; color:#990000; font-size:13pt; margin-top:0.5em;"><b></b></div>
 
-        <div id="mixed" style="display:none; width:44em; background:#ffc; margin:2em 0 2em 0; border:#800 4px solid; padding:0.5em 1em 0.7em 1em;"><span
-            style="text-align:center; font-size:11pt;">This web browser is not retrieving mixed-content images</span>
-          <div style="text-align:left; margin-top:0.5em;">This SQRL demo page checks for an installed and running SQRL
-            client by requesting a tiny GIF image from its built-in web server. But this web browser has been
-            configured to block the retrieval of passive mixed-content images. This is uncommon and is not the default
-            configuration for web browsers. If you are unable to allow passive mixed-content images you should disable
-            SQRL's anti-spoofing CPS protection, which is not recommended.</div>
-        </div>
+    <table cellspacing="0" cellpadding="0" style="margin: auto; margin-top:2em; border-top:#000 solid 1px; padding-top:0.5em;">
+      <tr>
+        <td style="padding:0 10px;"><img id="qrimg" src="" width="66" height="66" alt="Scan This QR Code to Logon" /></td>
+        <td
+          style="font-family:Arial, Helvetica, sans-serif; text-align:center; font-size:8pt; color:#fff; background:#007CC3; padding:4px 6px;">
+          <b>S<br />Q<br />R<br />L</b></td>
+        <td style="padding:0 10px;">
+          You may also login with SQRL using<br />
+          any SQRL-equipped smartphone by<br />
+          scanning this QR code.</td>
+      </tr>
+    </table>
 
-        <noscript>
-          <div style="width:45em; background:#ffc; margin:2em 0 2em 0; border:#b00 4px solid; padding:0.5em 1em 0.7em 1em;"><span
-              style="text-align:center; font-size:13pt;"><b>JavaScript is disabled on this page</b></span>
-            <div style="text-align:left; margin-top:0.5em;">SQRL can operate without JavaScript. GRC's SQRL demo pages
-              demonstrate script-free operation of SQRL. But scripting has become a default assumption and expectation
-              for web sites. And its presence allows for convenient SQRL automation such as automatic logged-on page
-              updating.&nbsp;&nbsp;<b>So this page requires JavaScript for its operation.</b></div>
-          </div>
-        </noscript>
+    <script type="text/javascript" src="/static/sqrlapi.js"></script>
 
-        <div style="margin-bottom:1em;"><b style="font-size:12pt;">This web browser is NOT currently logged into this
-            SQRL demonstration.</b></div>
+    <div style="position:fixed; bottom:0%; width:100%; background:#fff; border-top:#ccc 1px solid; padding-top:3px;">
 
-        <table cellspacing="0" cellpadding="0">
-          <tr>
-            <td style="text-align:center; font-family:Arial, Helvetica, sans-serif; font-size:9pt; color:#444;">
-              Click here to<br />
-              <a id="sqrl" href="sqrl://" onclick="gifProbe.onerror();return true;" tabindex="-1">
-                <img src=" /static/sqrloutline.svg" alt="SQRL Logo"/>
-                <span>Sign in with SQRL</span>
-              </a>
-            </td>
-          </tr>
-          <tr>
-            <td style="text-align:center; padding:0.5em; color:#000;"><i>-or-</i></td>
-          </tr>
-          <tr>
-            <td>
-              <table cellspacing="0" cellpadding="0" style="border:1px #888 solid; padding:0.5em; background:#F0F0F0;">
-                <tr>
-                  <td>
-                    <table cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td>Username</td>
-                        <td align="right"><i style="color:#666; font-size:smaller;">(30 characters max)</i></td>
-                      </tr>
-                      <tr>
-                        <td colspan="2"><input type="text" name="user" value="" size="33" maxlength="30" autofocus /></td>
-                      </tr>
-                    </table>
-                    <table style="margin-top:0.25em;" cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td>Password</td>
-                        <td align="right"><i style="color:#666; font-size:smaller;">(250 characters max)</i></td>
-                      </tr>
-                      <tr>
-                        <td colspan="2"><input type="text" name="pass" value="" size="33" maxlength="250" /></td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-                <tr align="center">
-                  <td><input style="margin-top:0.5em;" type="submit" name="command" value="    Login    " />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input
-                      style="margin-top:0.5em;" type="submit" name="command" value="Create Account" /></td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-        </table>
+      <table cellspacing="0" cellpadding="0" class="mono" style="width:100%; font-size:11pt; color:#888">
+        <tr>
+          <td style="width:33%;">Non-SQRL sign In: <span style="color:#000">---</span></td>
+          <td style="width:33%;">SQRL identity recovery: <span style="color:#000">---</span></td>
+        </tr>
+      </table>
 
-        <div style="text-align:center; color:#990000; font-size:13pt; margin-top:0.5em;"><b></b></div>
+      <table cellspacing="0" cellpadding="0" class="mono" style="width:100%; font-size:11pt; color:#888">
+        <tr>
+          <td style="width:33%;">SQRL ID: <span style="color:#000">---</span></td>
+          <td style="width:33%;">Browser Session: <span style="color:#000">{{ .Session }}</span></td>
+          <td style="width:33%;">Account ID: <span style="color:#000">---</span></td>
+        </tr>
+      </table>
 
-        <table cellspacing="0" cellpadding="0" style="margin-top:2em; border-top:#000 solid 1px; padding-top:0.5em;">
-          <tr>
-            <td style="padding:0 10px;"><img id="qrimg" src="" width="66" height="66" border="0" alt="Scan This QR Code to Logon" /></td>
-            <td style="font-family:Arial, Helvetica, sans-serif; text-align:center; font-size:8pt; color:#fff; background:#007CC3; padding:4px 6px;"><b>S<br />Q<br />R<br />L</b></td>
-            <td style="padding:0 10px;">You may also login with SQRL using<br />any SQRL-equipped smartphone by<br />scanning
-              this QR code.</td>
-          </tr>
-        </table>
-
-        <script type="text/javascript" src="/static/sqrlapi.js"></script>
-
-        <div style="position:fixed; bottom:0%; width:100%; background:#fff; border-top:#ccc 1px solid; padding-top:3px;">
-
-          <table cellspacing="0" cellpadding="0" class="mono" style="width:100%; font-size:11pt; color:#888">
-            <tr align="center">
-              <td style="width:33%;">Non-SQRL sign In: <span style="color:#000">---</span></td>
-              <td style="width:33%;">SQRL identity recovery: <span style="color:#000">---</span></td>
-            </tr>
-          </table>
-
-          <table cellspacing="0" cellpadding="0" class="mono" style="width:100%; font-size:11pt; color:#888">
-            <tr align="center">
-              <td style="width:33%;">SQRL ID: <span style="color:#000">---</span></td>
-              <td style="width:33%;">Browser Session: <span style="color:#000">{{ .Session }}</span></td>
-              <td style="width:33%;">Account ID: <span style="color:#000">---</span></td>
-            </tr>
-          </table>
-
-        </div>
-      </center>
-    </form>
+    </div>
+  </form>
 </body>
 
 </html>
