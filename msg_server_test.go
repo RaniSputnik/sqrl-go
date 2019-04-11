@@ -3,7 +3,7 @@ package sqrl_test
 import (
 	"testing"
 
-	"github.com/RaniSputnik/sqrl-go"
+	sqrl "github.com/RaniSputnik/sqrl-go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,6 +21,16 @@ func TestServerMsgEncode(t *testing.T) {
 					Qry: "/sqrl?nut=bRW-IegCUhGmcz9yvTtDKA",
 				},
 				Expect: "dmVyPTENCm51dD1iUlctSWVnQ1VoR21jejl5dlR0REtBDQp0aWY9NQ0KcXJ5PS9zcXJsP251dD1iUlctSWVnQ1VoR21jejl5dlR0REtBDQo",
+			},
+			{
+				Input: sqrl.ServerMsg{
+					Ver: []string{sqrl.V1},
+					Nut: "foo",
+					Tif: sqrl.TIF(5),
+					Qry: "/sqrl?nut=foo",
+					URL: "https://sqrl.example.com?123456789",
+				},
+				Expect: "dmVyPTENCm51dD1mb28NCnRpZj01DQpxcnk9L3Nxcmw_bnV0PWZvbw0KdXJsPWh0dHBzOi8vc3FybC5leGFtcGxlLmNvbT8xMjM0NTY3ODkNCg",
 			},
 		}
 
@@ -55,6 +65,16 @@ func TestServerMsgParse(t *testing.T) {
 					Tif: 4,
 					Qry: "/sqrl?nut=QLYNwSvLFLegwE9U1FrHnA",
 					// TODO: Sin: 0,
+				},
+			},
+			{
+				Input: "dmVyPTENCm51dD1mb28NCnRpZj01DQpxcnk9L3Nxcmw_bnV0PWZvbw0KdXJsPWh0dHBzOi8vc3FybC5leGFtcGxlLmNvbT8xMjM0NTY3ODkNCg",
+				Expect: sqrl.ServerMsg{
+					Ver: []string{sqrl.V1},
+					Nut: "foo",
+					Tif: 5,
+					Qry: "/sqrl?nut=foo",
+					URL: "https://sqrl.example.com?123456789",
 				},
 			},
 		}
