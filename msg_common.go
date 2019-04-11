@@ -18,11 +18,6 @@ func parseMsg(raw string) (map[string]string, error) {
 		return nil, err
 	}
 
-	// TODO: avoid parsing ver parameter twice
-	if !strings.HasPrefix(string(bytes), "ver=") {
-		return nil, errors.New("must start with ver parameter")
-	}
-
 	form := strings.Split(string(bytes), "\n")
 
 	vals := map[string]string{}
