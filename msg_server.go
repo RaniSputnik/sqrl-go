@@ -17,8 +17,8 @@ type ServerMsg struct {
 	Nut Nut
 	Tif TIF
 	Qry string
+	URL string
 
-	// TODO: url - for any command other than query
 	// TODO: sin - Secret index
 	// TODO: suk - server unlock key
 	// TODO: ask - message text to display to user
@@ -35,8 +35,11 @@ func (m *ServerMsg) Encode() (string, error) {
 		"nut=" + string(m.Nut),
 		"tif=" + strconv.Itoa(int(m.Tif)),
 		"qry=" + m.Qry,
-		"", // Must end with a final newline
 	}
+	if m.URL != "" {
+		vals = append(vals, "url="+m.URL)
+	}
+	vals = append(vals, "") // Must end with a final newline
 	return Base64.EncodeToString([]byte(strings.Join(vals, "\r\n"))), nil
 }
 
@@ -90,5 +93,6 @@ func ParseServer(raw string) (*ServerMsg, error) {
 		Nut: nut,
 		Tif: TIF(tif),
 		Qry: vals["qry"],
+		URL: vals["url"],
 	}, nil
 }
