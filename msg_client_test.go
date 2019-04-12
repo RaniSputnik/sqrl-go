@@ -1,6 +1,7 @@
 package sqrl_test
 
 import (
+	"fmt"
 	"testing"
 
 	sqrl "github.com/RaniSputnik/sqrl-go"
@@ -65,6 +66,26 @@ func TestClientMsgEncode(t *testing.T) {
 				},
 				Expect: "dmVyPTENCmNtZD1xdWVyeQ0KaWRrPVZsNEtWVlJvRzBDOHYxVlAwVUVVTksyel9TWWhOVllCWGRvYXJoTWxqelENCg",
 			},
+			{
+				Name: "Query with single option",
+				Input: sqrl.ClientMsg{
+					Ver: []string{sqrl.V1},
+					Cmd: sqrl.CmdQuery,
+					Idk: validIdk,
+					Opt: []sqrl.Opt{sqrl.OptCPS},
+				},
+				Expect: "dmVyPTENCmNtZD1xdWVyeQ0KaWRrPVZsNEtWVlJvRzBDOHYxVlAwVUVVTksyel9TWWhOVllCWGRvYXJoTWxqelENCm9wdD1jcHMNCg",
+			},
+			{
+				Name: "Query with two options",
+				Input: sqrl.ClientMsg{
+					Ver: []string{sqrl.V1},
+					Cmd: sqrl.CmdQuery,
+					Idk: validIdk,
+					Opt: []sqrl.Opt{sqrl.OptCPS, sqrl.OptSQRLOnly},
+				},
+				Expect: "dmVyPTENCmNtZD1xdWVyeQ0KaWRrPVZsNEtWVlJvRzBDOHYxVlAwVUVVTksyel9TWWhOVllCWGRvYXJoTWxqelENCm9wdD1jcHN-c3FybG9ubHkNCg",
+			},
 		}
 
 		for _, test := range cases {
@@ -111,32 +132,58 @@ func TestClientMsgParse(t *testing.T) {
 
 	t.Run("ReturnsValidClient", func(t *testing.T) {
 		cases := []struct {
+			Name     string
 			Input    string
 			Expected sqrl.ClientMsg
 		}{
 			{
+				Name:  "Basic query",
 				Input: "dmVyPTEKY21kPXF1ZXJ5Cmlkaz1WbDRLVlZSb0cwQzh2MVZQMFVFVU5LMnpfU1loTlZZQlhkb2FyaE1sanpRCg",
 				Expected: sqrl.ClientMsg{
 					Ver: []string{sqrl.V1},
 					Cmd: sqrl.CmdQuery,
 					Idk: validIdk,
+					Opt: []sqrl.Opt{},
 				},
 			},
 			{
+				Name:  "Basic query, alternative newline characters",
 				Input: "dmVyPTENCmNtZD1xdWVyeQ0KaWRrPVZsNEtWVlJvRzBDOHYxVlAwVUVVTksyel9TWWhOVllCWGRvYXJoTWxqelENCg",
 				Expected: sqrl.ClientMsg{
 					Ver: []string{sqrl.V1},
 					Cmd: sqrl.CmdQuery,
 					Idk: validIdk,
+					Opt: []sqrl.Opt{},
+				},
+			},
+			{
+				Name:  "Query with single option",
+				Input: "dmVyPTENCmNtZD1xdWVyeQ0KaWRrPVZsNEtWVlJvRzBDOHYxVlAwVUVVTksyel9TWWhOVllCWGRvYXJoTWxqelENCm9wdD1jcHMNCg",
+				Expected: sqrl.ClientMsg{
+					Ver: []string{sqrl.V1},
+					Cmd: sqrl.CmdQuery,
+					Idk: validIdk,
+					Opt: []sqrl.Opt{sqrl.OptCPS},
+				},
+			},
+			{
+				Name:  "Query with two options",
+				Input: "dmVyPTENCmNtZD1xdWVyeQ0KaWRrPVZsNEtWVlJvRzBDOHYxVlAwVUVVTksyel9TWWhOVllCWGRvYXJoTWxqelENCm9wdD1jcHN-c3FybG9ubHkNCg",
+				Expected: sqrl.ClientMsg{
+					Ver: []string{sqrl.V1},
+					Cmd: sqrl.CmdQuery,
+					Idk: validIdk,
+					Opt: []sqrl.Opt{sqrl.OptCPS, sqrl.OptSQRLOnly},
 				},
 			},
 		}
 
 		for _, test := range cases {
 			got, err := sqrl.ParseClient(test.Input)
-			assert.NoError(t, err)
-			if assert.NotNil(t, got) {
-				assert.Equal(t, test.Expected, *got)
+			assert.NoError(t, err, fmt.Sprintf("'%s' failed, returned an error", test.Name))
+			if assert.NotNil(t, got, fmt.Sprintf("'%s' failed, result was nil", test.Name)) {
+				assert.Equal(t, test.Expected, *got,
+					fmt.Sprintf("'%s' failed, result did not match expected value", test.Name))
 			}
 		}
 	})
