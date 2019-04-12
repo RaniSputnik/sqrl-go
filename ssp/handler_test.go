@@ -14,12 +14,10 @@ import (
 	"github.com/RaniSputnik/sqrl-go/ssp"
 )
 
-var anyKey = make([]byte, 16)
-
 const validNut = "rNRqu8olcWLAPaDvsL4b6owTVfryjzbre3hWHWnNTrK_hIS_KgIDFt2eBDc"
 
 func TestHandlerNutIsReturned(t *testing.T) {
-	s := httptest.NewServer(ssp.Handler(anyKey))
+	s := httptest.NewServer(ssp.Handler(anyServer()))
 	res, err := http.Get(s.URL + "/nut.json")
 
 	// Assert no errors
@@ -46,7 +44,7 @@ func TestHandlerNutIsReturned(t *testing.T) {
 }
 
 func TestHandlerNutIsUnique(t *testing.T) {
-	s := httptest.NewServer(ssp.Handler(anyKey))
+	s := httptest.NewServer(ssp.Handler(anyServer()))
 	endpoint := s.URL + "/nut.json"
 
 	type nutRes struct {
@@ -72,7 +70,7 @@ func TestHandlerNutIsUnique(t *testing.T) {
 }
 
 func TestQRCodeIsReturned(t *testing.T) {
-	s := httptest.NewServer(ssp.Handler(anyKey))
+	s := httptest.NewServer(ssp.Handler(anyServer()))
 	res, err := http.Get(s.URL + "/qr.png?nut=" + validNut)
 
 	// Assert no errors
@@ -98,7 +96,7 @@ func TestQRCodeIsReturned(t *testing.T) {
 func TestQRCodeIsReturnedAtSpecifiedSize(t *testing.T) {
 	const givenSize = 64
 
-	s := httptest.NewServer(ssp.Handler(anyKey))
+	s := httptest.NewServer(ssp.Handler(anyServer()))
 	res, err := http.Get(fmt.Sprintf("%s/qr.png?nut=%s&size=%d", s.URL, validNut, givenSize))
 	fatal(t, assert.NoError(t, err,
 		"Expected no HTTP/connection error"))
