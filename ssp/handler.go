@@ -14,10 +14,9 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func Handler(key []byte) http.Handler {
+func Handler(s *sqrl.Server) http.Handler {
 	// TODO: Make this configurable
 	logger := log.New(os.Stdout, "", 0)
-	s := sqrl.Configure(key)
 
 	r := mux.NewRouter().StrictSlash(false)
 	r.HandleFunc("/nut.json", nutHandler(s, logger))

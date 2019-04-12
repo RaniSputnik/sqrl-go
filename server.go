@@ -3,6 +3,7 @@ package sqrl
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"strings"
 	"time"
 )
 
@@ -11,6 +12,9 @@ import (
 type Server struct {
 	aesgcm    cipher.AEAD
 	nutExpiry time.Duration
+
+	redirectURL    string
+	clientEndpoint string
 }
 
 // Configure creates a new SQRL server
@@ -19,7 +23,12 @@ type Server struct {
 // TODO: Key rotation
 func Configure(key []byte) *Server {
 	aesgcm := genAesgcm(key)
-	return &Server{aesgcm, time.Minute * 5}
+	return &Server{
+		aesgcm:         aesgcm,
+		nutExpiry:      time.Minute * 5,
+		redirectURL:    "/",
+		clientEndpoint: "/cli.sqrl",
+	}
 }
 
 func genAesgcm(key []byte) cipher.AEAD {
@@ -42,7 +51,49 @@ func padKeyIfRequired(key []byte) {
 // WithNutExpiry sets the window of time within which
 // a nut is considered to be valid.
 func (s *Server) WithNutExpiry(d time.Duration) *Server {
-	// TODO: Mutex?
 	s.nutExpiry = d
 	return s
+}
+
+// WithRedirectURL sets the endpoint that the SQRL server
+// will redirect to when authentication is successful.
+//
+// When redirecting the SQRL server will add a ? then the
+// authentication token that can be used to retrieve the
+// session eg. If the URL https://example.com is provided
+// tokens will be returned to https://example.com?12345678
+func (s *Server) WithRedirectURL(url string) *Server {
+	i := strings.LastIndexByte(url, '?')
+	if i > -1 {
+		s.redirectURL = url[:i]
+	} else {
+		s.redirectURL = url
+	}
+	return s
+}
+
+// WithCLientURL sets the endpoint that the client can
+// use to post SQRL transactions to. This endpoint should
+// be the path relative to the SQRL domain eg. /sqrl/cli.sqrl
+//
+// Defaults to /cli.sqrl if not set.
+func (s *Server) WithCLientEndpoint(url string) *Server {
+	s.clientEndpoint = url
+	return s
+}
+
+// TODO: Do we need to expose these getters?
+// Complicates the interface a little, maybe would
+// be better as a simple struct?
+
+func (s *Server) NutExpiry() time.Duration {
+	return s.nutExpiry
+}
+
+func (s *Server) RedirectURL() string {
+	return s.redirectURL
+}
+
+func (s *Server) ClientEndpoint() string {
+	return s.clientEndpoint
 }

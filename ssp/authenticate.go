@@ -1,6 +1,7 @@
 package ssp
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -88,7 +89,7 @@ func Authenticate(server *sqrl.Server, delegate Delegate) http.Handler {
 			if client.HasOpt(sqrl.OptCPS) {
 				// TODO: Configure the redirect URL for authentication
 				token := "todo-token"
-				response.URL = "http://localhost:8080?" + token
+				response.URL = fmt.Sprintf("%s?%s", server.RedirectURL(), token)
 			}
 
 		case sqrl.CmdQuery:
@@ -102,14 +103,11 @@ func Authenticate(server *sqrl.Server, delegate Delegate) http.Handler {
 }
 
 func genNextResponse(server *sqrl.Server, r *http.Request) *sqrl.ServerMsg {
-	// TODO: How to configure this endpoint?
-	endpoint := "/sqrl" + r.URL.Path
-
 	nextNut := server.Nut(clientID(r))
 	return &sqrl.ServerMsg{
 		Ver: v1Only,
 		Nut: nextNut,
-		Qry: endpoint + "?nut=" + string(nextNut),
+		Qry: server.ClientEndpoint() + "?nut=" + string(nextNut),
 	}
 }
 
