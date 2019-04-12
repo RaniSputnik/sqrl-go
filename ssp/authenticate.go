@@ -80,20 +80,28 @@ func Authenticate(server *sqrl.Server, delegate Delegate) http.Handler {
 
 		switch client.Cmd {
 		case sqrl.CmdIdent:
-			err := delegate.Authenticated(r.Context(), client.Idk)
+			err := delegate.Verified(r.Context(), client.Idk)
 			if err != nil {
 				log.Fatalf("Failed to check authenticated: %v\n", err)
 				serverError(response)
 			}
 
 			if client.HasOpt(sqrl.OptCPS) {
-				// TODO: Configure the redirect URL for authentication
 				token := "todo-token"
 				response.URL = fmt.Sprintf("%s?%s", server.RedirectURL(), token)
-			}
 
+				if err := delegate.Redirected(r.Context(), client.Idk, token); err != nil {
+					panic(err) // TODO: Handle error
+				}
+			} else {
+				if err := delegate.Verified(r.Context(), client.Idk); err != nil {
+					panic(err) // TODO: Handle error
+				}
+			}
 		case sqrl.CmdQuery:
-			// Do nothing
+			if err := delegate.Queried(r.Context(), client.Idk, "todo: extract nut from server param"); err != nil {
+				panic(err) // TODO: Handle error
+			}
 
 		default:
 			// In all other cases, not supported

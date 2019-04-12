@@ -118,7 +118,7 @@ func TestAuthenticateReturnsClientErrorWhenSignatureInvalid(t *testing.T) {
 	}
 }
 
-func TestAuthenticateCallsDelegateAuthenticatedWhenIdentSuccessful(t *testing.T) {
+func TestAuthenticateCallsDelegateVerifiedWhenIdentSuccessful(t *testing.T) {
 	delegate := NewDelegate().ReturnsKnownIdentity()
 	w, r := setupAuthenticate(validIdentBody)
 	h := ssp.Authenticate(anyServer(), delegate)
@@ -129,7 +129,7 @@ func TestAuthenticateCallsDelegateAuthenticatedWhenIdentSuccessful(t *testing.T)
 	// this test fails - see if we can improve this.
 	assert.Equal(t,
 		sqrl.Identity("ZHkdPL34yaaJdyiKUOQuI-s2kjz-nHg0UNQ0ZAr6eds"),
-		delegate.Func.Authenticated.CalledWith.Id)
+		delegate.Func.Verified.CalledWith.Id)
 }
 
 func b64(in string) string {

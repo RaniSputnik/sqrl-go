@@ -4,6 +4,7 @@ import (
 	"context"
 
 	sqrl "github.com/RaniSputnik/sqrl-go"
+	"github.com/RaniSputnik/sqrl-go/ssp"
 )
 
 type mockDelegate struct {
@@ -18,10 +19,41 @@ type mockDelegate struct {
 				Err     error
 			}
 		}
-		Authenticated struct {
+		GetSession struct {
+			CalledWith struct {
+				Ctx context.Context
+				Nut sqrl.Nut
+			}
+			Returns struct {
+				Id    sqrl.Identity
+				State ssp.SessionState
+				Err   error
+			}
+		}
+		Queried struct {
 			CalledWith struct {
 				Ctx context.Context
 				Id  sqrl.Identity
+				Nut sqrl.Nut
+			}
+			Returns struct {
+				Err error
+			}
+		}
+		Verified struct {
+			CalledWith struct {
+				Ctx context.Context
+				Id  sqrl.Identity
+			}
+			Returns struct {
+				Err error
+			}
+		}
+		Redirected struct {
+			CalledWith struct {
+				Ctx   context.Context
+				Id    sqrl.Identity
+				Token string
 			}
 			Returns struct {
 				Err error
@@ -36,10 +68,31 @@ func (m *mockDelegate) Known(ctx context.Context, id sqrl.Identity) (bool, error
 	return m.Func.Known.Returns.IsKnown, m.Func.Known.Returns.Err
 }
 
-func (m *mockDelegate) Authenticated(ctx context.Context, id sqrl.Identity) error {
-	m.Func.Authenticated.CalledWith.Ctx = ctx
-	m.Func.Authenticated.CalledWith.Id = id
-	return m.Func.Authenticated.Returns.Err
+func (m *mockDelegate) GetSession(ctx context.Context, nut sqrl.Nut) (sqrl.Identity, ssp.SessionState, error) {
+	f := m.Func.GetSession
+	f.CalledWith.Ctx = ctx
+	f.CalledWith.Nut = nut
+	return f.Returns.Id, f.Returns.State, f.Returns.Err
+}
+
+func (m *mockDelegate) Queried(ctx context.Context, id sqrl.Identity, nut sqrl.Nut) error {
+	m.Func.Queried.CalledWith.Ctx = ctx
+	m.Func.Queried.CalledWith.Id = id
+	m.Func.Queried.CalledWith.Nut = nut
+	return m.Func.Queried.Returns.Err
+}
+
+func (m *mockDelegate) Verified(ctx context.Context, id sqrl.Identity) error {
+	m.Func.Verified.CalledWith.Ctx = ctx
+	m.Func.Verified.CalledWith.Id = id
+	return m.Func.Verified.Returns.Err
+}
+
+func (m *mockDelegate) Redirected(ctx context.Context, id sqrl.Identity, token string) error {
+	m.Func.Redirected.CalledWith.Ctx = ctx
+	m.Func.Redirected.CalledWith.Id = id
+	m.Func.Redirected.CalledWith.Token = token
+	return m.Func.Redirected.Returns.Err
 }
 
 // Language helpers
