@@ -103,14 +103,11 @@ func Authenticate(server *sqrl.Server, delegate Delegate) http.Handler {
 }
 
 func genNextResponse(server *sqrl.Server, r *http.Request) *sqrl.ServerMsg {
-	// TODO: How to configure this endpoint?
-	endpoint := "/sqrl" + r.URL.Path
-
 	nextNut := server.Nut(clientID(r))
 	return &sqrl.ServerMsg{
 		Ver: v1Only,
 		Nut: nextNut,
-		Qry: endpoint + "?nut=" + string(nextNut),
+		Qry: server.ClientEndpoint() + "?nut=" + string(nextNut),
 	}
 }
 

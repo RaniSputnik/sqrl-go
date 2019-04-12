@@ -13,7 +13,8 @@ type Server struct {
 	aesgcm    cipher.AEAD
 	nutExpiry time.Duration
 
-	redirectURL string
+	redirectURL    string
+	clientEndpoint string
 }
 
 // Configure creates a new SQRL server
@@ -23,8 +24,10 @@ type Server struct {
 func Configure(key []byte) *Server {
 	aesgcm := genAesgcm(key)
 	return &Server{
-		aesgcm:    aesgcm,
-		nutExpiry: time.Minute * 5,
+		aesgcm:         aesgcm,
+		nutExpiry:      time.Minute * 5,
+		redirectURL:    "/",
+		clientEndpoint: "/cli.sqrl",
 	}
 }
 
@@ -69,6 +72,16 @@ func (s *Server) WithRedirectURL(url string) *Server {
 	return s
 }
 
+// WithCLientURL sets the endpoint that the client can
+// use to post SQRL transactions to. This endpoint should
+// be the path relative to the SQRL domain eg. /sqrl/cli.sqrl
+//
+// Defaults to /cli.sqrl if not set.
+func (s *Server) WithCLientEndpoint(url string) *Server {
+	s.clientEndpoint = url
+	return s
+}
+
 // TODO: Do we need to expose these getters?
 // Complicates the interface a little, maybe would
 // be better as a simple struct?
@@ -78,8 +91,9 @@ func (s *Server) NutExpiry() time.Duration {
 }
 
 func (s *Server) RedirectURL() string {
-	if s.redirectURL == "" {
-		return "/"
-	}
 	return s.redirectURL
+}
+
+func (s *Server) ClientEndpoint() string {
+	return s.clientEndpoint
 }

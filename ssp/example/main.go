@@ -20,7 +20,12 @@ func main() {
 	// http://www.gorillatoolkit.org/pkg/handlers#CORSOption
 	config := sqrl.Configure(todoKey).
 		WithNutExpiry(time.Minute * 5).
-		WithRedirectURL("http://localhost:8080")
+		WithRedirectURL("http://localhost:8080").
+		// TODO: bit lame that this cli.sqrl is both hardcoded
+		// in ssp and configured here. Should we only provide
+		// the /sqrl part here? Or should cli.sqrl be moved out
+		// of ssp.Handler?
+		WithCLientEndpoint("/sqrl/cli.sqrl")
 
 	dir := "static"
 	fs := http.FileServer(http.Dir(dir))
