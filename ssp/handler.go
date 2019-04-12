@@ -22,6 +22,7 @@ func Handler(key []byte) http.Handler {
 	r := mux.NewRouter().StrictSlash(false)
 	r.HandleFunc("/nut.json", nutHandler(s, logger))
 	r.HandleFunc("/qr.png", qrHandler(s, logger))
+	r.Handle("/cli.sqrl", Authenticate(s, TODODelegate()))
 	return r
 }
 
