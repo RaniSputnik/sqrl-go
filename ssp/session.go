@@ -21,29 +21,27 @@ func SessionHandler(server *sqrl.Server, delegate Delegate) http.Handler {
 
 		// TODO: Do not call the delgate with an invalid nut
 
-		id, state, err := delegate.GetSession(r.Context(), sqrl.Nut(nut))
+		// TODO: Check for an IP match (IP should ALWAYS match here)
+
+		id, token, err := delegate.GetSession(r.Context(), sqrl.Nut(nut))
 		if err != nil {
 			// TODO: handle err in some more clever way
 			panic(err)
 		}
 
-		switch state {
-		case SessionUnknown:
-			fallthrough
-		case SessionAuthenticating:
+		// TODO: If we have an ID
+
+		if token == "" {
 			w.WriteHeader(http.StatusNotFound)
-		case SessionAuthenticated:
-			// TODO: We should probably save the token in the ident handler
-			// so that it can be verified by the resource server later
-			token := "todo-token"
-			url := fmt.Sprintf("%s?%s", server.RedirectURL(), token)
-
-			if err := delegate.Redirected(r.Context(), id, token); err != nil {
-				panic(err) // TODO: Handle error in some sensible way
-			}
-
-			w.WriteHeader(http.StatusFound)
-			http.Redirect(w, r, url, http.StatusFound)
+			return
 		}
+
+		url := fmt.Sprintf("%s?%s", server.RedirectURL(), token)
+		if err := delegate.Redirected(r.Context(), id); err != nil {
+			panic(err) // TODO: Handle error in some sensible way
+		}
+
+		w.WriteHeader(http.StatusFound)
+		http.Redirect(w, r, url, http.StatusFound)
 	})
 }

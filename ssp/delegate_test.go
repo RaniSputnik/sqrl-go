@@ -4,7 +4,6 @@ import (
 	"context"
 
 	sqrl "github.com/RaniSputnik/sqrl-go"
-	"github.com/RaniSputnik/sqrl-go/ssp"
 )
 
 type mockDelegate struct {
@@ -26,7 +25,7 @@ type mockDelegate struct {
 			}
 			Returns struct {
 				Id    sqrl.Identity
-				State ssp.SessionState
+				Token string
 				Err   error
 			}
 		}
@@ -42,8 +41,9 @@ type mockDelegate struct {
 		}
 		Verified struct {
 			CalledWith struct {
-				Ctx context.Context
-				Id  sqrl.Identity
+				Ctx   context.Context
+				Id    sqrl.Identity
+				Token string
 			}
 			Returns struct {
 				Err error
@@ -51,9 +51,8 @@ type mockDelegate struct {
 		}
 		Redirected struct {
 			CalledWith struct {
-				Ctx   context.Context
-				Id    sqrl.Identity
-				Token string
+				Ctx context.Context
+				Id  sqrl.Identity
 			}
 			Returns struct {
 				Err error
@@ -68,11 +67,11 @@ func (m *mockDelegate) Known(ctx context.Context, id sqrl.Identity) (bool, error
 	return m.Func.Known.Returns.IsKnown, m.Func.Known.Returns.Err
 }
 
-func (m *mockDelegate) GetSession(ctx context.Context, nut sqrl.Nut) (sqrl.Identity, ssp.SessionState, error) {
+func (m *mockDelegate) GetSession(ctx context.Context, nut sqrl.Nut) (sqrl.Identity, string, error) {
 	f := m.Func.GetSession
 	f.CalledWith.Ctx = ctx
 	f.CalledWith.Nut = nut
-	return f.Returns.Id, f.Returns.State, f.Returns.Err
+	return f.Returns.Id, f.Returns.Token, f.Returns.Err
 }
 
 func (m *mockDelegate) Queried(ctx context.Context, id sqrl.Identity, nut sqrl.Nut) error {
@@ -82,16 +81,16 @@ func (m *mockDelegate) Queried(ctx context.Context, id sqrl.Identity, nut sqrl.N
 	return m.Func.Queried.Returns.Err
 }
 
-func (m *mockDelegate) Verified(ctx context.Context, id sqrl.Identity) error {
+func (m *mockDelegate) Verified(ctx context.Context, id sqrl.Identity, token string) error {
 	m.Func.Verified.CalledWith.Ctx = ctx
 	m.Func.Verified.CalledWith.Id = id
+	m.Func.Verified.CalledWith.Token = token
 	return m.Func.Verified.Returns.Err
 }
 
-func (m *mockDelegate) Redirected(ctx context.Context, id sqrl.Identity, token string) error {
+func (m *mockDelegate) Redirected(ctx context.Context, id sqrl.Identity) error {
 	m.Func.Redirected.CalledWith.Ctx = ctx
 	m.Func.Redirected.CalledWith.Id = id
-	m.Func.Redirected.CalledWith.Token = token
 	return m.Func.Redirected.Returns.Err
 }
 

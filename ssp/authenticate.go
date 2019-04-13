@@ -80,7 +80,8 @@ func Authenticate(server *sqrl.Server, delegate Delegate) http.Handler {
 
 		switch client.Cmd {
 		case sqrl.CmdIdent:
-			err := delegate.Verified(r.Context(), client.Idk)
+			token := "todo-token"
+			err := delegate.Verified(r.Context(), client.Idk, token)
 			if err != nil {
 				log.Fatalf("Failed to check authenticated: %v\n", err)
 				serverError(response)
@@ -90,11 +91,7 @@ func Authenticate(server *sqrl.Server, delegate Delegate) http.Handler {
 				token := "todo-token"
 				response.URL = fmt.Sprintf("%s?%s", server.RedirectURL(), token)
 
-				if err := delegate.Redirected(r.Context(), client.Idk, token); err != nil {
-					panic(err) // TODO: Handle error
-				}
-			} else {
-				if err := delegate.Verified(r.Context(), client.Idk); err != nil {
+				if err := delegate.Redirected(r.Context(), client.Idk); err != nil {
 					panic(err) // TODO: Handle error
 				}
 			}
