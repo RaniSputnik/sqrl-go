@@ -2,6 +2,7 @@ package ssp
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
 	sqrl "github.com/RaniSputnik/sqrl-go"
@@ -41,7 +42,8 @@ func SessionHandler(server *sqrl.Server, delegate Delegate) http.Handler {
 			panic(err) // TODO: Handle error in some sensible way
 		}
 
-		w.WriteHeader(http.StatusFound)
-		http.Redirect(w, r, url, http.StatusFound)
+		if _, err := w.Write([]byte(url)); err != nil {
+			log.Printf("Failed to write pag.sqrl response: %v", err)
+		}
 	})
 }

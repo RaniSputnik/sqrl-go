@@ -2,6 +2,7 @@ package ssp
 
 import (
 	"context"
+	"log"
 	"time"
 
 	sqrl "github.com/RaniSputnik/sqrl-go"
@@ -55,6 +56,7 @@ func (d *inmemoryDelegate) Known(ctx context.Context, id sqrl.Identity) (bool, e
 }
 
 func (d *inmemoryDelegate) GetSession(ctx context.Context, nut sqrl.Nut) (sqrl.Identity, string, error) {
+	log.Printf("Delegate:GetSession nut=%s", nut)
 	a := d.attemptWhere(nutEquals(nut))
 	if a == nil {
 		return "", "", nil
@@ -68,6 +70,7 @@ func (d *inmemoryDelegate) GetSession(ctx context.Context, nut sqrl.Nut) (sqrl.I
 }
 
 func (d *inmemoryDelegate) Queried(ctx context.Context, id sqrl.Identity, nut sqrl.Nut) error {
+	log.Printf("Delegate:Queried id=%s, nut=%s", id, nut)
 	now := time.Now()
 	newAttempt := attempt{
 		IDK:       id,
@@ -80,6 +83,7 @@ func (d *inmemoryDelegate) Queried(ctx context.Context, id sqrl.Identity, nut sq
 }
 
 func (d *inmemoryDelegate) Verified(ctx context.Context, id sqrl.Identity, token string) error {
+	log.Printf("Delegate:Verified id=%s, token=%s", id, token)
 	// TODO: What do we actually want to do with this callback?
 	// Would we prefer
 	a := d.attemptWhere(identityEquals(id))
@@ -92,6 +96,7 @@ func (d *inmemoryDelegate) Verified(ctx context.Context, id sqrl.Identity, token
 
 // TODO: We might want to pass 'nut' here instead of identity
 func (d *inmemoryDelegate) Redirected(ctx context.Context, id sqrl.Identity) error {
+	log.Printf("Delegate:Redirected id=%s", id)
 	// TODO: What do we actually want to do with this callback?
 	return nil
 }

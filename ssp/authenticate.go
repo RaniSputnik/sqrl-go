@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
+	"strings"
 
 	sqrl "github.com/RaniSputnik/sqrl-go"
 )
@@ -23,9 +25,6 @@ func serverError(response *sqrl.ServerMsg) {
 func Authenticate(server *sqrl.Server, delegate Delegate) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Got SQRL request: %v\n", r)
-
-		// Reference implementation here
-		// https://github.com/Novators/libsqrl/blob/c/src/server_protocol.c
 
 		response := genNextResponse(server, r)
 		defer writeResponse(w, response)
@@ -47,9 +46,14 @@ func Authenticate(server *sqrl.Server, delegate Delegate) http.Handler {
 		// TODO: pids
 
 		client, errc := sqrl.ParseClient(clientRaw)
-		// Ensure that it is the URL / params we sent
-		//_, errs := sqrl.ParseServer(r.Form.Get("server"))
-		if errc != nil /*|| errs != nil */ {
+		if errc != nil {
+			log.Printf("Client param (%s) invalid: %v", clientRaw, errc)
+			clientFailure(response)
+			return
+		}
+		nut, serverOK := verifyServer(serverRaw)
+		if !serverOK {
+			log.Printf("Server param (%s) invalid", serverRaw)
 			clientFailure(response)
 			return
 		}
@@ -96,7 +100,7 @@ func Authenticate(server *sqrl.Server, delegate Delegate) http.Handler {
 				}
 			}
 		case sqrl.CmdQuery:
-			if err := delegate.Queried(r.Context(), client.Idk, "todo: extract nut from server param"); err != nil {
+			if err := delegate.Queried(r.Context(), client.Idk, nut); err != nil {
 				panic(err) // TODO: Handle error
 			}
 
@@ -127,5 +131,41 @@ func writeResponse(w http.ResponseWriter, response *sqrl.ServerMsg) {
 	w.Header().Set("Content-Type", xFormURLEncoded)
 	if _, err := w.Write([]byte(encoded)); err != nil {
 		panic(err) // TODO: What to do here?
+	}
+}
+
+func verifyServer(serverRaw string) (sqrl.Nut, bool) {
+	// TODO: Here we accept EITHER a URL or ServerMsg
+	// However we know that ONLY the first request
+	// from the client should be a URL.
+	// Is there a way for us to ensure that here?
+
+	bytes, err := sqrl.Base64.DecodeString(serverRaw)
+	if err != nil {
+		return "", false
+	}
+
+	server := string(bytes)
+	if strings.HasPrefix(server, "sqrl") {
+		serverURL, err := url.Parse(server)
+		if err != nil {
+			return "", false
+		}
+
+		// TODO: Assert URL matches server configuration
+		// eg. domain, "server friendly name", etc.
+
+		nut := serverURL.Query().Get("nut")
+		if nut == "" {
+			return "", false
+		}
+		return sqrl.Nut(nut), true
+
+	} else {
+		msg, err := sqrl.ParseServer(serverRaw)
+		if err != nil || msg == nil || msg.Nut == "" {
+			return "", false
+		}
+		return msg.Nut, true
 	}
 }
