@@ -20,7 +20,7 @@ func main() {
 	// http://www.gorillatoolkit.org/pkg/handlers#CORSOption
 	config := sqrl.Configure(todoKey).
 		WithNutExpiry(time.Minute * 5).
-		WithRedirectURL("http://localhost:8080").
+		WithRedirectURL("http://localhost:8080/callback").
 		// TODO: bit lame that this cli.sqrl is both hardcoded
 		// in ssp and configured here. Should we only provide
 		// the /sqrl part here? Or should cli.sqrl be moved out
@@ -33,12 +33,21 @@ func main() {
 	// TODO: Don't strip the trailing slash here or else gorilla Mux will become confused
 	// and attempt to clean+rediect. Is this something that we should handle in library code?
 	http.Handle("/sqrl/", http.StripPrefix("/sqrl", ssp.Handler(config)))
+	http.Handle("/callback", authCallbackHandler())
 	http.Handle("/", indexHandler())
 
 	port := ":8080"
 	log.Printf("Serving files from './%s' on port %s", dir, port)
 	if err := http.ListenAndServe(port, nil); err != nil {
 		log.Fatal(err)
+	}
+}
+
+func authCallbackHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if _, err := w.Write([]byte("TODO")); err != nil {
+			log.Printf("Failed to write callback response: %v", err)
+		}
 	}
 }
 

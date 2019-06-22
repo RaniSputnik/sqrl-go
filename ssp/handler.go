@@ -18,10 +18,13 @@ func Handler(s *sqrl.Server) http.Handler {
 	// TODO: Make this configurable
 	logger := log.New(os.Stdout, "", 0)
 
+	store := NewMemoryStore()
+
 	r := mux.NewRouter().StrictSlash(false)
 	r.HandleFunc("/nut.json", nutHandler(s, logger))
 	r.HandleFunc("/qr.png", qrHandler(s, logger))
-	r.Handle("/cli.sqrl", Authenticate(s, TODODelegate()))
+	r.Handle("/cli.sqrl", Authenticate(s, store))
+	r.Handle("/pag.sqrl", PagHandler(s, store))
 	return r
 }
 
