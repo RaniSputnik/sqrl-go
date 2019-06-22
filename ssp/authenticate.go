@@ -22,7 +22,7 @@ func serverError(response *sqrl.ServerMsg) {
 	response.Tif |= sqrl.TIFCommandFailed
 }
 
-func Authenticate(server *sqrl.Server, delegate Delegate) http.Handler {
+func Authenticate(server *sqrl.Server, store Store) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Got SQRL request: %v\n", r)
 
@@ -57,8 +57,7 @@ func Authenticate(server *sqrl.Server, delegate Delegate) http.Handler {
 			clientFailure(response)
 			return
 		}
-
-		// TODO: Verify server parameter in some way
+		// TODO: Verify nut hasn't expired
 
 		signedPayload := clientRaw + serverRaw
 		if !ids.Verify(client.Idk, signedPayload) {
@@ -67,15 +66,34 @@ func Authenticate(server *sqrl.Server, delegate Delegate) http.Handler {
 		}
 		// TODO: Verify previous identity signatures
 
+		thisTransaction := &Transaction{
+			Id:   nut,
+			Next: response.Nut,
+		}
+		if err := store.SaveTransaction(r.Context(), thisTransaction); err != nil {
+			log.Printf("Failed to save transaction: %v\n", err)
+			serverError(response)
+			return
+		}
+		firstTransaction, err := store.GetFirstTransaction(r.Context(), nut)
+		if err != nil {
+			log.Printf("Failed to retrieve first transaction: %v\n", err)
+			serverError(response)
+			return
+		}
+		if firstTransaction == nil {
+			firstTransaction = thisTransaction
+		}
+
 		// TODO: Fetch user details
 		// TODO: Fetch user from previous identity
 
 		// TODO: Test for IP Match
 
 		// TODO: Pass previous identities to "known"
-		isKnown, err := delegate.Known(r.Context(), client.Idk)
+		isKnown, err := store.GetIsKnown(r.Context(), client.Idk)
 		if err != nil {
-			log.Printf("Failed to process response: %v\n", err)
+			log.Printf("Failed to determine if identity is known: %v\n", err)
 			serverError(response)
 			return
 		} else if isKnown {
@@ -85,7 +103,7 @@ func Authenticate(server *sqrl.Server, delegate Delegate) http.Handler {
 		switch client.Cmd {
 		case sqrl.CmdIdent:
 			token := "todo-token"
-			err := delegate.Verified(r.Context(), client.Idk, token)
+			err := store.SaveIdentSuccess(r.Context(), firstTransaction.Id, token)
 			if err != nil {
 				log.Fatalf("Failed to check authenticated: %v\n", err)
 				serverError(response)
@@ -95,14 +113,14 @@ func Authenticate(server *sqrl.Server, delegate Delegate) http.Handler {
 				token := "todo-token"
 				response.URL = fmt.Sprintf("%s?%s", server.RedirectURL(), token)
 
-				if err := delegate.Redirected(r.Context(), client.Idk); err != nil {
-					panic(err) // TODO: Handle error
-				}
+				// if err := delegate.Redirected(r.Context(), client.Idk); err != nil {
+				// 	panic(err) // TODO: Handle error
+				// }
 			}
 		case sqrl.CmdQuery:
-			if err := delegate.Queried(r.Context(), client.Idk, nut); err != nil {
-				panic(err) // TODO: Handle error
-			}
+			// if err := delegate.Queried(r.Context(), client.Idk, nut); err != nil {
+			// 	panic(err) // TODO: Handle error
+			// }
 
 		default:
 			// In all other cases, not supported

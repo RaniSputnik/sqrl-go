@@ -25,7 +25,7 @@ const validQueryBody = "client=dmVyPTENCmNtZD1xdWVyeQ0KaWRrPVpIa2RQTDM0eWFhSmR5a
 const validIdentBody = "client=dmVyPTENCmNtZD1pZGVudA0KaWRrPVpIa2RQTDM0eWFhSmR5aUtVT1F1SS1zMmtqei1uSGcwVU5RMFpBcjZlZHMNCg&server=dmVyPTENCm51dD01aHFaS3VIeXE1dDZ5Mmlmb1czd1B3DQp0aWY9NQ0KcXJ5PS9zcXJsP251dD01aHFaS3VIeXE1dDZ5Mmlmb1czd1B3DQo&ids=z__MvVTGpeDLLPj3O9QLNrkcvsk_8iuipu-DWalCfQWuP1xXom3HW1MhXNOYYhYiO2Kx2qMgT3D0uze3hdYLDg"
 
 func TestAuthenticateReturnsClientErrorWhenContentTypeIsNotFormEncoded(t *testing.T) {
-	h := ssp.Authenticate(anyServer(), NewDelegate())
+	h := ssp.Authenticate(anyServer(), NewStore())
 	w, r := setupAuthenticate(emptyBody)
 	r.Header.Set("Content-Type", "application/json")
 
@@ -43,7 +43,7 @@ func TestAuthenticateReturnsClientErrorWhenContentTypeIsNotFormEncoded(t *testin
 // TODO: Invalid Server Param
 
 func TestAuthenticateReturnsClientFailureWhenClientParamIsMissing(t *testing.T) {
-	h := ssp.Authenticate(anyServer(), NewDelegate())
+	h := ssp.Authenticate(anyServer(), NewStore())
 	w, r := setupAuthenticate(fmt.Sprintf("server=%s", validServer))
 	h.ServeHTTP(w, r)
 
@@ -66,7 +66,7 @@ func TestAuthenticateReturnsClientFailureWhenClientStringIsInvalid(t *testing.T)
 		{"VerComesSecond", b64("cmd=query\nver=1")},
 	}
 
-	h := ssp.Authenticate(anyServer(), NewDelegate())
+	h := ssp.Authenticate(anyServer(), NewStore())
 
 	for _, test := range cases {
 		t.Run(test.Name, func(t *testing.T) {
@@ -84,7 +84,7 @@ func TestAuthenticateReturnsClientFailureWhenClientStringIsInvalid(t *testing.T)
 
 func TestAuthenticateReturnsCurrentIDMatchWhenIDIsKnown(t *testing.T) {
 	w, r := setupAuthenticate(validQueryBody)
-	h := ssp.Authenticate(anyServer(), NewDelegate().ReturnsKnownIdentity())
+	h := ssp.Authenticate(anyServer(), NewStore().ReturnsKnownIdentity())
 
 	h.ServeHTTP(w, r)
 
@@ -96,7 +96,7 @@ func TestAuthenticateReturnsCurrentIDMatchWhenIDIsKnown(t *testing.T) {
 
 func TestAuthenticateReturnsNoIDMatchWhenIDIsUnknown(t *testing.T) {
 	w, r := setupAuthenticate(validQueryBody)
-	h := ssp.Authenticate(anyServer(), NewDelegate().ReturnsUnknownIdentity())
+	h := ssp.Authenticate(anyServer(), NewStore().ReturnsUnknownIdentity())
 
 	h.ServeHTTP(w, r)
 
@@ -108,7 +108,7 @@ func TestAuthenticateReturnsNoIDMatchWhenIDIsUnknown(t *testing.T) {
 
 func TestAuthenticateReturnsClientErrorWhenSignatureInvalid(t *testing.T) {
 	w, r := setupAuthenticate(invalidQuerySignature)
-	h := ssp.Authenticate(anyServer(), NewDelegate())
+	h := ssp.Authenticate(anyServer(), NewStore())
 
 	h.ServeHTTP(w, r)
 
@@ -118,19 +118,20 @@ func TestAuthenticateReturnsClientErrorWhenSignatureInvalid(t *testing.T) {
 	}
 }
 
-func TestAuthenticateCallsDelegateVerifiedWhenIdentSuccessful(t *testing.T) {
-	delegate := NewDelegate().ReturnsKnownIdentity()
-	w, r := setupAuthenticate(validIdentBody)
-	h := ssp.Authenticate(anyServer(), delegate)
+// TODO: Update to verify that SaveIdentSuccess is called correctly on store
+// func TestAuthenticateCallsDelegateVerifiedWhenIdentSuccessful(t *testing.T) {
+// 	store := NewStore().ReturnsKnownIdentity()
+// 	w, r := setupAuthenticate(validIdentBody)
+// 	h := ssp.Authenticate(anyServer(), store)
 
-	h.ServeHTTP(w, r)
+// 	h.ServeHTTP(w, r)
 
-	// TODO: this assertion fails in a really unintuitive way when
-	// this test fails - see if we can improve this.
-	assert.Equal(t,
-		sqrl.Identity("ZHkdPL34yaaJdyiKUOQuI-s2kjz-nHg0UNQ0ZAr6eds"),
-		delegate.Func.Verified.CalledWith.Id)
-}
+// 	// TODO: this assertion fails in a really unintuitive way when
+// 	// this test fails - see if we can improve this.
+// 	assert.Equal(t,
+// 		sqrl.Identity("ZHkdPL34yaaJdyiKUOQuI-s2kjz-nHg0UNQ0ZAr6eds"),
+// 		delegate.Func.Verified.CalledWith.Id)
+// }
 
 func b64(in string) string {
 	return sqrl.Base64.EncodeToString([]byte(in))
