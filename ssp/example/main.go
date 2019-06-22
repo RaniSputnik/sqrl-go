@@ -1,8 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"html/template"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
@@ -43,7 +46,7 @@ func main() {
 	// TODO: Don't strip the trailing slash here or else gorilla Mux will become confused
 	// and attempt to clean+rediect. Is this something that we should handle in library code?
 	http.Handle("/sqrl/", http.StripPrefix("/sqrl", ssp.Handler(config, serverToServerProtection)))
-	http.Handle("/callback", authCallbackHandler())
+	http.Handle("/callback", authCallbackHandler("http://localhost:8080/sqrl/token"))
 	http.Handle("/", indexHandler())
 
 	port := ":8080"
@@ -53,7 +56,11 @@ func main() {
 	}
 }
 
-func authCallbackHandler() http.HandlerFunc {
+func authCallbackHandler(sspTokenURL string) http.HandlerFunc {
+	client := &http.Client{
+		Timeout: time.Second * 5,
+	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		token := r.URL.Query().Get("token")
 		if token == "" {
@@ -62,8 +69,23 @@ func authCallbackHandler() http.HandlerFunc {
 			return
 		}
 
-		if _, err := w.Write([]byte("TODO")); err != nil {
-			log.Printf("Failed to write callback response: %v", err)
+		userId, err := validateToken(client, sspTokenURL, token)
+		if err != nil {
+			log.Printf("Failed to validate token: %+v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if userId == "" {
+			log.Printf("Invalid token: %s", token)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		// TODO: Set cookie instead of returning user id
+		// TODO: Redirect the client
+		if _, err := w.Write([]byte("Got user with id: " + userId)); err != nil {
+			log.Printf("Failed to write callback response: %+v", err)
 		}
 	}
 }
@@ -88,4 +110,34 @@ func indexHandler() http.HandlerFunc {
 			log.Printf("Failed to render template: %v", err)
 		}
 	}
+}
+
+func validateToken(client *http.Client, sspTokenURL string, token string) (userId string, err error) {
+	type tokenResponse struct {
+		User string `json:"user"`
+	}
+
+	url := fmt.Sprintf("%s?token=%s", sspTokenURL, token)
+	r, _ := http.NewRequest(http.MethodGet, url, nil)
+	r.Header.Set("X-Client-Secret", clientSecret)
+	res, err := client.Do(r)
+	if err != nil {
+		return "", err
+	}
+	if res.StatusCode == http.StatusNotFound {
+		return "", nil
+	}
+	if res.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("remote server returned error when validating token: %s", res.Status)
+	}
+
+	defer res.Body.Close()
+	bytes, err := ioutil.ReadAll(res.Body)
+
+	var got tokenResponse
+	err = json.Unmarshal(bytes, &got)
+	if err != nil {
+		log.Printf("Failed to decode body: %s", bytes)
+	}
+	return got.User, err
 }

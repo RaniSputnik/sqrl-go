@@ -28,7 +28,7 @@ func Handler(s *sqrl.Server, authFunc ServerToServerAuthValidationFunc) http.Han
 
 	userStore := &todoUserStore{}
 	protect := ServerToServerAuthMiddleware(authFunc, logger)
-	r.Handle("/tokens", protect(TokenHandler(s, userStore, logger))).Methods(http.MethodGet)
+	r.Handle("/token", protect(TokenHandler(s, userStore, logger))).Methods(http.MethodGet)
 	// r.Handle("/users", protect(AddUserHandler(userStore, logger))).Methods(http.MethodPost)
 	// r.Handle("/users", protecte(DeleteUserHandler(userStore, logger))).Methods(http.MethodDelete)
 
