@@ -24,7 +24,7 @@ func Handler(s *sqrl.Server) http.Handler {
 	r.HandleFunc("/nut.json", nutHandler(s, logger))
 	r.HandleFunc("/qr.png", qrHandler(s, logger))
 	r.Handle("/cli.sqrl", Authenticate(s, delegate))
-	r.Handle("/pag.sqrl", SessionHandler(s, delegate))
+	r.Handle("/pag.sqrl", PagHandler(s, delegate))
 	return r
 }
 

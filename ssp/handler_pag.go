@@ -16,7 +16,7 @@ const (
 	SessionAuthenticated  = SessionState("authenticated")
 )
 
-func SessionHandler(server *sqrl.Server, delegate Delegate) http.Handler {
+func PagHandler(server *sqrl.Server, delegate Delegate) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		nut := r.URL.Query().Get("nut")
 
