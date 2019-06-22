@@ -2,7 +2,8 @@ package ssp
 
 import (
 	"context"
-	"errors"
+	"crypto/rand"
+	"fmt"
 	"sync"
 
 	sqrl "github.com/RaniSputnik/sqrl-go"
@@ -67,9 +68,35 @@ func (s *inmemoryStore) GetIdentSuccess(ctx context.Context, nut sqrl.Nut) (toke
 }
 
 func (s *inmemoryStore) CreateUser(ctx context.Context, idk sqrl.Identity) (*User, error) {
-	return nil, errors.New("not implemented")
+	s.Lock()
+	defer s.Unlock()
+	newUser := &User{
+		Id:  uuid(),
+		Idk: idk,
+	}
+	s.users = append(s.users, newUser)
+	return newUser, nil
 }
 
 func (s *inmemoryStore) GetUserByIdentity(ctx context.Context, idk sqrl.Identity) (*User, error) {
-	return nil, errors.New("not implemented")
+	s.Lock()
+	defer s.Unlock()
+
+	for _, user := range s.users {
+		if user.Idk == idk {
+			return user, nil
+		}
+	}
+
+	return nil, nil
+}
+
+func uuid() string {
+	b := make([]byte, 16)
+	_, err := rand.Read(b)
+	if err != nil {
+		panic(err)
+	}
+	return fmt.Sprintf("%x-%x-%x-%x-%x",
+		b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
 }

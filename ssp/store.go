@@ -2,7 +2,6 @@ package ssp
 
 import (
 	"context"
-	"errors"
 
 	sqrl "github.com/RaniSputnik/sqrl-go"
 )
@@ -61,14 +60,4 @@ type User struct {
 type Store interface {
 	TransactionStore
 	UserStore
-}
-
-type todoUserStore struct{}
-
-func (s *todoUserStore) CreateUser(ctx context.Context, idk sqrl.Identity) (*User, error) {
-	return nil, errors.New("not implemented")
-}
-
-func (s *todoUserStore) GetUserByIdentity(ctx context.Context, idk sqrl.Identity) (*User, error) {
-	return nil, errors.New("not implemented")
 }

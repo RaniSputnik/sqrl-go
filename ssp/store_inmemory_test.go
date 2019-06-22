@@ -91,5 +91,53 @@ func TestMemoryStoreIdent(t *testing.T) {
 }
 
 func TestMemoryStoreUsers(t *testing.T) {
-	// TODO: Add tests for user functions
+	ctx := context.TODO()
+
+	t.Run("CreatesUserReturnsAUser", func(t *testing.T) {
+		s := ssp.NewMemoryStore()
+		user, err := s.CreateUser(ctx, "someidk")
+		assert.Nil(t, err)
+		assert.NotNil(t, user)
+	})
+
+	// TODO: What to do if we attempt to create a user with the same IDK?
+
+	t.Run("CreateUserUsesAUniqueIDForTheUser", func(t *testing.T) {
+		s := ssp.NewMemoryStore()
+		user1, _ := s.CreateUser(ctx, "idk1")
+		user2, _ := s.CreateUser(ctx, "idk2")
+		if assert.NotNil(t, user1) && assert.NotNil(t, user2) {
+			assert.NotEmpty(t, user1.Id)
+			assert.NotEmpty(t, user2.Id)
+			assert.NotEqual(t, user1.Id, user2.Id)
+		}
+	})
+
+	t.Run("CreateUserSetsTheNewUsersIDKCorrectly", func(t *testing.T) {
+		s := ssp.NewMemoryStore()
+		idk := sqrl.Identity("someidk")
+		user, _ := s.CreateUser(ctx, idk)
+		if assert.NotNil(t, user) {
+			assert.Equal(t, idk, user.Idk)
+		}
+	})
+
+	t.Run("GetUserByIdentityReturnsKnownUser", func(t *testing.T) {
+		s := ssp.NewMemoryStore()
+		idk := sqrl.Identity("someidk")
+		user, _ := s.CreateUser(ctx, idk)
+
+		fetchedUser, err := s.GetUserByIdentity(ctx, idk)
+		assert.Nil(t, err)
+		if assert.NotNil(t, fetchedUser) {
+			assert.Equal(t, user.Id, fetchedUser.Id)
+		}
+	})
+
+	t.Run("GetUserByIdentityReturnsNilIfUserNotFound", func(t *testing.T) {
+		s := ssp.NewMemoryStore()
+		fetchedUser, err := s.GetUserByIdentity(ctx, "someidk")
+		assert.Nil(t, err)
+		assert.Nil(t, fetchedUser)
+	})
 }
