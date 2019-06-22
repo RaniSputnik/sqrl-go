@@ -85,12 +85,12 @@ func (s *Server) WithRedirectURL(url string) *Server {
 	return s
 }
 
-// WithCLientURL sets the endpoint that the client can
+// WithClientEndpoint sets the endpoint that the client can
 // use to post SQRL transactions to. This endpoint should
 // be the path relative to the SQRL domain eg. /sqrl/cli.sqrl
 //
 // Defaults to /cli.sqrl if not set.
-func (s *Server) WithCLientEndpoint(url string) *Server {
+func (s *Server) WithClientEndpoint(url string) *Server {
 	s.clientEndpoint = url
 	return s
 }

@@ -31,7 +31,7 @@ func main() {
 		// in ssp and configured here. Should we only provide
 		// the /sqrl part here? Or should cli.sqrl be moved out
 		// of ssp.Handler?
-		WithCLientEndpoint("/sqrl/cli.sqrl")
+		WithClientEndpoint("/sqrl/cli.sqrl")
 
 	serverToServerProtection := func(r *http.Request) error {
 		if r.Header.Get("X-Client-Secret") != clientSecret {
