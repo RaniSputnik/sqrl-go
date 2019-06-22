@@ -24,7 +24,7 @@ func Handler(s *sqrl.Server, authFunc ServerToServerAuthValidationFunc) http.Han
 	r := mux.NewRouter().StrictSlash(false)
 	r.HandleFunc("/nut.json", nutHandler(s, logger))
 	r.HandleFunc("/qr.png", qrHandler(s, logger))
-	r.Handle("/cli.sqrl", Authenticate(s, store, tokens, &todoUserStore{}))
+	r.Handle("/cli.sqrl", Authenticate(s, store, tokens))
 	r.Handle("/pag.sqrl", PagHandler(s, store))
 
 	protect := ServerToServerAuthMiddleware(authFunc, logger)

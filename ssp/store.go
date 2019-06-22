@@ -7,7 +7,7 @@ import (
 	sqrl "github.com/RaniSputnik/sqrl-go"
 )
 
-type Store interface {
+type TransactionStore interface {
 	// GetFirstTransaction returns the transaction that started an exchange between
 	// a SQRL client and SSP server. If no error or transaction is returned then
 	// the current transaction is the first transaction in the exchange.
@@ -56,6 +56,11 @@ type User struct {
 	Id  string
 	Idk sqrl.Identity
 	// TODO: Do we need to store previous identity keys?
+}
+
+type Store interface {
+	TransactionStore
+	UserStore
 }
 
 type todoUserStore struct{}

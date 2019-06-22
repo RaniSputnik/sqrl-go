@@ -2,6 +2,7 @@ package ssp
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	sqrl "github.com/RaniSputnik/sqrl-go"
@@ -11,6 +12,7 @@ type inmemoryStore struct {
 	transactions      map[sqrl.Nut]*Transaction
 	firstTransactions map[sqrl.Nut]sqrl.Nut
 	tokens            map[sqrl.Nut]string
+	users             []*User
 
 	sync.Mutex
 }
@@ -64,9 +66,10 @@ func (s *inmemoryStore) GetIdentSuccess(ctx context.Context, nut sqrl.Nut) (toke
 	return s.tokens[nut], nil
 }
 
-func (s *inmemoryStore) GetIsKnown(ctx context.Context, id sqrl.Identity) (bool, error) {
-	// TODO: what point is an identity is considered "known"
-	// eg. is it after a successful query? Or is "known" only
-	// saved after a successful ident?
-	return false, nil
+func (s *inmemoryStore) CreateUser(ctx context.Context, idk sqrl.Identity) (*User, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (s *inmemoryStore) GetUserByIdentity(ctx context.Context, idk sqrl.Identity) (*User, error) {
+	return nil, errors.New("not implemented")
 }

@@ -122,6 +122,10 @@ func anyServer() *sqrl.Server {
 	return sqrl.Configure(make([]byte, 16))
 }
 
+func anyTokenGenerator() *ssp.TokenGenerator {
+	return ssp.NewTokenGenerator(make([]byte, 16))
+}
+
 func noProtection() ssp.ServerToServerAuthValidationFunc {
 	return func(r *http.Request) error {
 		// Allow all server-to-server requests through

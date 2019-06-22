@@ -89,3 +89,7 @@ func TestMemoryStoreIdent(t *testing.T) {
 		assert.Equal(t, givenToken, gotToken)
 	})
 }
+
+func TestMemoryStoreUsers(t *testing.T) {
+	// TODO: Add tests for user functions
+}

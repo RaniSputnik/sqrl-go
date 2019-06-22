@@ -24,7 +24,7 @@ func serverError(response *sqrl.ServerMsg) {
 // TODO: This method is ridiculously large, we should be able to break it down
 // and move some of the functionality (particularly validation) to the core SQRL
 // package for folks who don't need a SSP server.
-func Authenticate(server *sqrl.Server, store Store, tokens *TokenGenerator, userStore UserStore) http.Handler {
+func Authenticate(server *sqrl.Server, store Store, tokens *TokenGenerator) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		log.Printf("Got SQRL request: %v\n", r)
@@ -91,7 +91,7 @@ func Authenticate(server *sqrl.Server, store Store, tokens *TokenGenerator, user
 		// TODO: Test for IP Match
 
 		// TODO: Pass previous identities to "GetByIdentity"
-		currentUser, err := userStore.GetUserByIdentity(ctx, client.Idk)
+		currentUser, err := store.GetUserByIdentity(ctx, client.Idk)
 		if err != nil {
 			log.Printf("Failed to determine if identity is known: %v\n", err)
 			serverError(response)
@@ -104,7 +104,7 @@ func Authenticate(server *sqrl.Server, store Store, tokens *TokenGenerator, user
 		case sqrl.CmdIdent:
 			// Create user if they do not already exist
 			if currentUser == nil {
-				currentUser, err = userStore.CreateUser(ctx, client.Idk)
+				currentUser, err = store.CreateUser(ctx, client.Idk)
 				if err != nil {
 					log.Printf("Failed to create user: %v\n", err)
 					serverError(response)
