@@ -2,7 +2,6 @@ package ssp
 
 import (
 	"encoding/json"
-	"errors"
 	"log"
 	"net/http"
 
@@ -12,26 +11,19 @@ import (
 // TokenHandler is an endpoint repsonsible for validating and exchanging the token
 // issued to the client for user details so that the resource server can associate
 // that SQRL user with their own copy of the user identity.
-func TokenHandler(s *sqrl.Server, store TokenStore, logger *log.Logger) http.Handler {
+func TokenHandler(s *sqrl.Server, tokens *TokenGenerator, logger *log.Logger) http.Handler {
 	type tokenResponse struct {
 		User string `json:"user"`
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token := r.URL.Query().Get("token")
-		if err := validateToken(token); err != nil {
+		userId, err := tokens.ValidateToken(token)
+		if err != nil {
 			logger.Printf("Token validation failed: %+v", err)
 			// TODO: Standardise error responses
 			// An invalid token is the same as a token that does not exist
 			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-
-		userId, err := store.GetUserForToken(r.Context(), token)
-		if err != nil {
-			logger.Printf("Failed to GetAuthenticatedUser: %+v", err)
-			// TODO: Standardise error responses
-			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
@@ -40,11 +32,4 @@ func TokenHandler(s *sqrl.Server, store TokenStore, logger *log.Logger) http.Han
 			logger.Printf("User write unsuccessful: %v", err)
 		}
 	})
-}
-
-func validateToken(token string) error {
-	// TODO: Check token was signed by this server
-	// TODO: Check token has not expired
-
-	return errors.New("not implemented")
 }

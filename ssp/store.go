@@ -39,26 +39,6 @@ type Transaction struct {
 	// Server string
 }
 
-// TODO: We probably don't need this
-// We should instead store the userId in token itself
-// Along with the token expiry
-type TokenStore interface {
-	// This method is pretty gross - it'd be easy to mix up token and user id
-	// TODO: Stronger type for either token, userId or both
-	SaveToken(ctx context.Context, token string, userId string) error
-	GetUserForToken(ctx context.Context, token string) (userId string, err error)
-}
-
-type todoTokenStore struct{}
-
-func (s *todoTokenStore) SaveToken(ctx context.Context, token string, userId string) error {
-	return errors.New("not implemented")
-}
-
-func (s *todoTokenStore) GetUserForToken(ctx context.Context, token string) (userId string, err error) {
-	return "", errors.New("not implemented")
-}
-
 type UserStore interface {
 	CreateUser(ctx context.Context, idk sqrl.Identity) (*User, error)
 

@@ -21,7 +21,10 @@ func serverError(response *sqrl.ServerMsg) {
 	response.Tif |= sqrl.TIFCommandFailed
 }
 
-func Authenticate(server *sqrl.Server, store Store, tokenStore TokenStore, userStore UserStore) http.Handler {
+// TODO: This method is ridiculously large, we should be able to break it down
+// and move some of the functionality (particularly validation) to the core SQRL
+// package for folks who don't need a SSP server.
+func Authenticate(server *sqrl.Server, store Store, tokens *TokenGenerator, userStore UserStore) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		log.Printf("Got SQRL request: %v\n", r)
@@ -109,15 +112,10 @@ func Authenticate(server *sqrl.Server, store Store, tokenStore TokenStore, userS
 				}
 			}
 
-			// Create and save the token that we will issue
-			token := "todo-token"
-			err = tokenStore.SaveToken(ctx, token, currentUser.Id)
-			if err != nil {
-				log.Fatalf("Failed to save token: %v\n", err)
-				serverError(response)
-				return
-			}
-
+			// Generate a new token that can be exchanged for user credentials
+			// TODO: It would be great if we could guarantee the size of tokens
+			// for DB backends that want to specify the column size for the token
+			token := tokens.Token(currentUser.Id)
 			// Record that this transaction was a success, store the token
 			err = store.SaveIdentSuccess(r.Context(), firstTransaction.Id, token)
 			if err != nil {

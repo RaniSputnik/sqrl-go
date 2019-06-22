@@ -19,16 +19,16 @@ func Handler(s *sqrl.Server, authFunc ServerToServerAuthValidationFunc) http.Han
 	logger := log.New(os.Stdout, "", 0)
 
 	store := NewMemoryStore()
+	tokens := NewTokenGenerator(s.Key())
 
 	r := mux.NewRouter().StrictSlash(false)
 	r.HandleFunc("/nut.json", nutHandler(s, logger))
 	r.HandleFunc("/qr.png", qrHandler(s, logger))
-	r.Handle("/cli.sqrl", Authenticate(s, store, &todoTokenStore{}, &todoUserStore{}))
+	r.Handle("/cli.sqrl", Authenticate(s, store, tokens, &todoUserStore{}))
 	r.Handle("/pag.sqrl", PagHandler(s, store))
 
-	tokenStore := &todoTokenStore{}
 	protect := ServerToServerAuthMiddleware(authFunc, logger)
-	r.Handle("/token", protect(TokenHandler(s, tokenStore, logger))).Methods(http.MethodGet)
+	r.Handle("/token", protect(TokenHandler(s, tokens, logger))).Methods(http.MethodGet)
 	// r.Handle("/users", protect(AddUserHandler(userStore, logger))).Methods(http.MethodPost)
 	// r.Handle("/users", protecte(DeleteUserHandler(userStore, logger))).Methods(http.MethodDelete)
 

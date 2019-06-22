@@ -10,11 +10,23 @@ import (
 // Server is a SQRL compliant server configured
 // with nut encryption keys and expiry times.
 type Server struct {
+	key       []byte
 	aesgcm    cipher.AEAD
 	nutExpiry time.Duration
 
 	redirectURL    string
 	clientEndpoint string
+}
+
+// Key returns the AES key used
+// by the server for nut generation
+//
+// This is currently used by the
+// SSP package to share a single key
+// between servers. Can we do better
+// than this?
+func (s *Server) Key() []byte {
+	return s.key
 }
 
 // Configure creates a new SQRL server
@@ -24,6 +36,7 @@ type Server struct {
 func Configure(key []byte) *Server {
 	aesgcm := genAesgcm(key)
 	return &Server{
+		key:            key,
 		aesgcm:         aesgcm,
 		nutExpiry:      time.Minute * 5,
 		redirectURL:    "/",

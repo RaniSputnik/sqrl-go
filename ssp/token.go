@@ -59,14 +59,13 @@ var (
 )
 
 func (g *TokenGenerator) ValidateToken(token string) (userId string, err error) {
-	emptyUserId := ""
 	t, err := g.decryptToken(token)
 	if err != nil {
-		return emptyUserId, ErrTokenFormatInvalid
+		return "", ErrTokenFormatInvalid
 	}
 	issuedAt := time.Unix(t.CreatedAt, 0)
 	if g.NowFunc().Sub(issuedAt) > g.tokenExpiry {
-		return emptyUserId, ErrTokenExpired
+		return "", ErrTokenExpired
 	}
 	// TODO: Any kind of validation needed of user id?
 	return t.UserId, nil
