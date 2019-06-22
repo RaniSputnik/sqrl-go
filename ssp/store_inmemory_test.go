@@ -26,7 +26,7 @@ func TestMemoryStoreGetFirstTransaction(t *testing.T) {
 	t.Run("ReturnsNoTransactionIfExistsButIsFirstTransaction", func(t *testing.T) {
 		s := ssp.NewMemoryStore()
 		nut := sqrl.Nut("neverusedbefore")
-		s.SaveTransaction(ctx, &ssp.Transaction{
+		_ = s.SaveTransaction(ctx, &ssp.Transaction{
 			Id:   nut,
 			Next: sqrl.Nut("someothernut"),
 		})
@@ -38,7 +38,7 @@ func TestMemoryStoreGetFirstTransaction(t *testing.T) {
 		s := ssp.NewMemoryStore()
 		firstNut := sqrl.Nut("neverusedbefore")
 		thisNut := sqrl.Nut("someothernut")
-		s.SaveTransaction(ctx, &ssp.Transaction{
+		_ = s.SaveTransaction(ctx, &ssp.Transaction{
 			Id:   firstNut,
 			Next: thisNut,
 		})
@@ -54,15 +54,15 @@ func TestMemoryStoreGetFirstTransaction(t *testing.T) {
 		firstNut := sqrl.Nut("firstnut")
 		secondNut := sqrl.Nut("secondnut")
 		thirdNut := sqrl.Nut("thirdnut")
-		s.SaveTransaction(ctx, &ssp.Transaction{
+		_ = s.SaveTransaction(ctx, &ssp.Transaction{
 			Id:   firstNut,
 			Next: secondNut,
 		})
-		s.SaveTransaction(ctx, &ssp.Transaction{
+		_ = s.SaveTransaction(ctx, &ssp.Transaction{
 			Id:   secondNut,
 			Next: thirdNut,
 		})
-		s.SaveTransaction(ctx, &ssp.Transaction{
+		_ = s.SaveTransaction(ctx, &ssp.Transaction{
 			Id:   thirdNut,
 			Next: sqrl.Nut("someothernut"),
 		})
@@ -82,7 +82,7 @@ func TestMemoryStoreIdent(t *testing.T) {
 		s := ssp.NewMemoryStore()
 		givenToken := "abcdef1234567890"
 
-		s.SaveIdentSuccess(ctx, knownNut, givenToken)
+		_ = s.SaveIdentSuccess(ctx, knownNut, givenToken)
 		gotToken, err := s.GetIdentSuccess(ctx, knownNut)
 
 		assert.Nil(t, err)
