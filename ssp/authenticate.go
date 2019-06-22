@@ -110,7 +110,6 @@ func Authenticate(server *sqrl.Server, store Store) http.Handler {
 			}
 
 			if client.HasOpt(sqrl.OptCPS) {
-				token := "todo-token"
 				response.URL = fmt.Sprintf("%s?%s", server.RedirectURL(), token)
 
 				// if err := delegate.Redirected(r.Context(), client.Idk); err != nil {
