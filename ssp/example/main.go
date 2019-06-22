@@ -83,10 +83,7 @@ func authCallbackHandler(sspTokenURL string) http.HandlerFunc {
 		}
 
 		// TODO: Set cookie instead of returning user id
-		// TODO: Redirect the client
-		if _, err := w.Write([]byte("Got user with id: " + userId)); err != nil {
-			log.Printf("Failed to write callback response: %+v", err)
-		}
+		http.Redirect(w, r, "/", http.StatusFound)
 	}
 }
 
