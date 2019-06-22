@@ -1,7 +1,6 @@
 package ssp
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"log"
@@ -10,26 +9,10 @@ import (
 	sqrl "github.com/RaniSputnik/sqrl-go"
 )
 
-type User struct {
-	Id string
-}
-
-// TODO: Where's the best place to put this? Extend the existing Store interface?
-// Or a new store interface entirely?
-type UserStore interface {
-	GetAuthenticatedUser(ctx context.Context, token string) (*User, error)
-}
-
-type todoUserStore struct{}
-
-func (s *todoUserStore) GetAuthenticatedUser(ctx context.Context, token string) (*User, error) {
-	return nil, errors.New("not implemented")
-}
-
 // TokenHandler is an endpoint repsonsible for validating and exchanging the token
 // issued to the client for user details so that the resource server can associate
 // that SQRL user with their own copy of the user identity.
-func TokenHandler(s *sqrl.Server, store UserStore, logger *log.Logger) http.Handler {
+func TokenHandler(s *sqrl.Server, store TokenStore, logger *log.Logger) http.Handler {
 	type tokenResponse struct {
 		User string `json:"user"`
 	}
@@ -44,7 +27,7 @@ func TokenHandler(s *sqrl.Server, store UserStore, logger *log.Logger) http.Hand
 			return
 		}
 
-		user, err := store.GetAuthenticatedUser(r.Context(), token)
+		userId, err := store.GetUserForToken(r.Context(), token)
 		if err != nil {
 			logger.Printf("Failed to GetAuthenticatedUser: %+v", err)
 			// TODO: Standardise error responses
@@ -52,7 +35,7 @@ func TokenHandler(s *sqrl.Server, store UserStore, logger *log.Logger) http.Hand
 			return
 		}
 
-		res := tokenResponse{User: user.Id}
+		res := tokenResponse{User: userId}
 		if err := json.NewEncoder(w).Encode(res); err != nil {
 			logger.Printf("User write unsuccessful: %v", err)
 		}

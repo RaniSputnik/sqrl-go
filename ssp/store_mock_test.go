@@ -48,6 +48,7 @@ type mockStore struct {
 				Err   error
 			}
 		}
+		// TODO: Remove me
 		GetIsKnown struct {
 			CalledWith struct {
 				Ctx context.Context

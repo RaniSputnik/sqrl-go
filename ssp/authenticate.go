@@ -21,8 +21,9 @@ func serverError(response *sqrl.ServerMsg) {
 	response.Tif |= sqrl.TIFCommandFailed
 }
 
-func Authenticate(server *sqrl.Server, store Store) http.Handler {
+func Authenticate(server *sqrl.Server, store Store, tokenStore TokenStore, userStore UserStore) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		log.Printf("Got SQRL request: %v\n", r)
 
 		response := genNextResponse(server, r)
@@ -69,12 +70,12 @@ func Authenticate(server *sqrl.Server, store Store) http.Handler {
 			Id:   nut,
 			Next: response.Nut,
 		}
-		if err := store.SaveTransaction(r.Context(), thisTransaction); err != nil {
+		if err := store.SaveTransaction(ctx, thisTransaction); err != nil {
 			log.Printf("Failed to save transaction: %v\n", err)
 			serverError(response)
 			return
 		}
-		firstTransaction, err := store.GetFirstTransaction(r.Context(), nut)
+		firstTransaction, err := store.GetFirstTransaction(ctx, nut)
 		if err != nil {
 			log.Printf("Failed to retrieve first transaction: %v\n", err)
 			serverError(response)
@@ -84,28 +85,45 @@ func Authenticate(server *sqrl.Server, store Store) http.Handler {
 			firstTransaction = thisTransaction
 		}
 
-		// TODO: Fetch user details
-		// TODO: Fetch user from previous identity
-
 		// TODO: Test for IP Match
 
-		// TODO: Pass previous identities to "known"
-		isKnown, err := store.GetIsKnown(r.Context(), client.Idk)
+		// TODO: Pass previous identities to "GetByIdentity"
+		currentUser, err := userStore.GetUserByIdentity(ctx, client.Idk)
 		if err != nil {
 			log.Printf("Failed to determine if identity is known: %v\n", err)
 			serverError(response)
 			return
-		} else if isKnown {
+		} else if currentUser != nil {
 			response.Tif |= sqrl.TIFCurrentIDMatch
 		}
 
 		switch client.Cmd {
 		case sqrl.CmdIdent:
+			// Create user if they do not already exist
+			if currentUser == nil {
+				currentUser, err = userStore.CreateUser(ctx, client.Idk)
+				if err != nil {
+					log.Printf("Failed to create user: %v\n", err)
+					serverError(response)
+					return
+				}
+			}
+
+			// Create and save the token that we will issue
 			token := "todo-token"
-			err := store.SaveIdentSuccess(r.Context(), firstTransaction.Id, token)
+			err = tokenStore.SaveToken(ctx, token, currentUser.Id)
 			if err != nil {
-				log.Fatalf("Failed to check authenticated: %v\n", err)
+				log.Fatalf("Failed to save token: %v\n", err)
 				serverError(response)
+				return
+			}
+
+			// Record that this transaction was a success, store the token
+			err = store.SaveIdentSuccess(r.Context(), firstTransaction.Id, token)
+			if err != nil {
+				log.Fatalf("Failed to save ident success: %v\n", err)
+				serverError(response)
+				return
 			}
 
 			if client.HasOpt(sqrl.OptCPS) {
