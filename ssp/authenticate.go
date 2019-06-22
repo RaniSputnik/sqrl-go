@@ -111,15 +111,9 @@ func Authenticate(server *sqrl.Server, store Store) http.Handler {
 
 			if client.HasOpt(sqrl.OptCPS) {
 				response.URL = fmt.Sprintf("%s?%s", server.RedirectURL(), token)
-
-				// if err := delegate.Redirected(r.Context(), client.Idk); err != nil {
-				// 	panic(err) // TODO: Handle error
-				// }
 			}
 		case sqrl.CmdQuery:
-			// if err := delegate.Queried(r.Context(), client.Idk, nut); err != nil {
-			// 	panic(err) // TODO: Handle error
-			// }
+			// TODO: Anything need to be done here?
 
 		default:
 			// In all other cases, not supported

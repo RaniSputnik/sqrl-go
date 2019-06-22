@@ -119,19 +119,15 @@ func TestAuthenticateReturnsClientErrorWhenSignatureInvalid(t *testing.T) {
 }
 
 // TODO: Update to verify that SaveIdentSuccess is called correctly on store
-// func TestAuthenticateCallsDelegateVerifiedWhenIdentSuccessful(t *testing.T) {
-// 	store := NewStore().ReturnsKnownIdentity()
-// 	w, r := setupAuthenticate(validIdentBody)
-// 	h := ssp.Authenticate(anyServer(), store)
+func TestAuthenticateCallsStoreSaveIdentSuccessWhenIdentSuccessful(t *testing.T) {
+	store := NewStore().ReturnsKnownIdentity()
+	w, r := setupAuthenticate(validIdentBody)
+	h := ssp.Authenticate(anyServer(), store)
 
-// 	h.ServeHTTP(w, r)
+	h.ServeHTTP(w, r)
 
-// 	// TODO: this assertion fails in a really unintuitive way when
-// 	// this test fails - see if we can improve this.
-// 	assert.Equal(t,
-// 		sqrl.Identity("ZHkdPL34yaaJdyiKUOQuI-s2kjz-nHg0UNQ0ZAr6eds"),
-// 		delegate.Func.Verified.CalledWith.Id)
-// }
+	assert.NotEmpty(t, store.Func.SaveIdentSuccess.CalledWith.Token)
+}
 
 func b64(in string) string {
 	return sqrl.Base64.EncodeToString([]byte(in))
