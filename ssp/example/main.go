@@ -55,6 +55,13 @@ func main() {
 
 func authCallbackHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		token := r.URL.Query().Get("token")
+		if token == "" {
+			log.Printf("Callback called without token")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
 		if _, err := w.Write([]byte("TODO")); err != nil {
 			log.Printf("Failed to write callback response: %v", err)
 		}

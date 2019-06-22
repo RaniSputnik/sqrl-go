@@ -107,3 +107,7 @@ func requestDomain(r *http.Request) string {
 	// TODO: Do we need to do anything special here for proxies?
 	return r.Host
 }
+
+func getTokenRedirectURL(server *sqrl.Server, token string) string {
+	return fmt.Sprintf("%s?token=%s", server.RedirectURL(), token)
+}

@@ -1,7 +1,6 @@
 package ssp
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -110,7 +109,7 @@ func Authenticate(server *sqrl.Server, store Store) http.Handler {
 			}
 
 			if client.HasOpt(sqrl.OptCPS) {
-				response.URL = fmt.Sprintf("%s?%s", server.RedirectURL(), token)
+				response.URL = getTokenRedirectURL(server, token)
 			}
 		case sqrl.CmdQuery:
 			// TODO: Anything need to be done here?
