@@ -8,14 +8,6 @@ import (
 	sqrl "github.com/RaniSputnik/sqrl-go"
 )
 
-type SessionState string
-
-const (
-	SessionUnknown        = SessionState("unknown")
-	SessionAuthenticating = SessionState("authenticating")
-	SessionAuthenticated  = SessionState("authenticated")
-)
-
 func PagHandler(server *sqrl.Server, store Store) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		nut := r.URL.Query().Get("nut")
