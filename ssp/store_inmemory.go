@@ -2,6 +2,8 @@ package ssp
 
 import (
 	"context"
+	"crypto/rand"
+	"fmt"
 	"sync"
 
 	sqrl "github.com/RaniSputnik/sqrl-go"
@@ -11,6 +13,7 @@ type inmemoryStore struct {
 	transactions      map[sqrl.Nut]*Transaction
 	firstTransactions map[sqrl.Nut]sqrl.Nut
 	tokens            map[sqrl.Nut]string
+	users             []*User
 
 	sync.Mutex
 }
@@ -64,9 +67,36 @@ func (s *inmemoryStore) GetIdentSuccess(ctx context.Context, nut sqrl.Nut) (toke
 	return s.tokens[nut], nil
 }
 
-func (s *inmemoryStore) GetIsKnown(ctx context.Context, id sqrl.Identity) (bool, error) {
-	// TODO: what point is an identity is considered "known"
-	// eg. is it after a successful query? Or is "known" only
-	// saved after a successful ident?
-	return false, nil
+func (s *inmemoryStore) CreateUser(ctx context.Context, idk sqrl.Identity) (*User, error) {
+	s.Lock()
+	defer s.Unlock()
+	newUser := &User{
+		Id:  uuid(),
+		Idk: idk,
+	}
+	s.users = append(s.users, newUser)
+	return newUser, nil
+}
+
+func (s *inmemoryStore) GetUserByIdentity(ctx context.Context, idk sqrl.Identity) (*User, error) {
+	s.Lock()
+	defer s.Unlock()
+
+	for _, user := range s.users {
+		if user.Idk == idk {
+			return user, nil
+		}
+	}
+
+	return nil, nil
+}
+
+func uuid() string {
+	b := make([]byte, 16)
+	_, err := rand.Read(b)
+	if err != nil {
+		panic(err)
+	}
+	return fmt.Sprintf("%x-%x-%x-%x-%x",
+		b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
 }

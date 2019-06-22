@@ -1,7 +1,6 @@
 package ssp
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 
@@ -27,7 +26,7 @@ func PagHandler(server *sqrl.Server, store Store) http.Handler {
 			return
 		}
 
-		url := fmt.Sprintf("%s?%s", server.RedirectURL(), token)
+		url := getTokenRedirectURL(server, token)
 		if _, err := w.Write([]byte(url)); err != nil {
 			log.Printf("Failed to write pag.sqrl response: %v", err)
 		}

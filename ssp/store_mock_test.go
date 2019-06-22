@@ -48,14 +48,24 @@ type mockStore struct {
 				Err   error
 			}
 		}
-		GetIsKnown struct {
+		CreateUser struct {
 			CalledWith struct {
 				Ctx context.Context
-				Id  sqrl.Identity
+				Idk sqrl.Identity
 			}
 			Returns struct {
-				IsKnown bool
-				Err     error
+				User *ssp.User
+				Err  error
+			}
+		}
+		GetUserByIdentity struct {
+			CalledWith struct {
+				Ctx context.Context
+				Idk sqrl.Identity
+			}
+			Returns struct {
+				User *ssp.User
+				Err  error
 			}
 		}
 	}
@@ -86,10 +96,16 @@ func (m *mockStore) GetIdentSuccess(ctx context.Context, nut sqrl.Nut) (token st
 	return m.Func.GetIdentSuccess.Returns.Token, m.Func.GetIdentSuccess.Returns.Err
 }
 
-func (m *mockStore) GetIsKnown(ctx context.Context, id sqrl.Identity) (bool, error) {
-	m.Func.GetIsKnown.CalledWith.Ctx = ctx
-	m.Func.GetIsKnown.CalledWith.Id = id
-	return m.Func.GetIsKnown.Returns.IsKnown, m.Func.GetIsKnown.Returns.Err
+func (m *mockStore) CreateUser(ctx context.Context, idk sqrl.Identity) (*ssp.User, error) {
+	m.Func.CreateUser.CalledWith.Ctx = ctx
+	m.Func.CreateUser.CalledWith.Idk = idk
+	return m.Func.CreateUser.Returns.User, m.Func.CreateUser.Returns.Err
+}
+
+func (m *mockStore) GetUserByIdentity(ctx context.Context, idk sqrl.Identity) (*ssp.User, error) {
+	m.Func.GetUserByIdentity.CalledWith.Ctx = ctx
+	m.Func.GetUserByIdentity.CalledWith.Idk = idk
+	return m.Func.GetUserByIdentity.Returns.User, m.Func.GetUserByIdentity.Returns.Err
 }
 
 // Language helpers
@@ -99,13 +115,16 @@ func NewStore() *mockStore {
 }
 
 func (m *mockStore) ReturnsUnknownIdentity() *mockStore {
-	m.Func.GetIsKnown.Returns.IsKnown = false
-	m.Func.GetIsKnown.Returns.Err = nil
+	m.Func.GetUserByIdentity.Returns.User = nil
+	m.Func.GetUserByIdentity.Returns.Err = nil
 	return m
 }
 
 func (m *mockStore) ReturnsKnownIdentity() *mockStore {
-	m.Func.GetIsKnown.Returns.IsKnown = true
-	m.Func.GetIsKnown.Returns.Err = nil
+	m.Func.GetUserByIdentity.Returns.User = &ssp.User{
+		Id:  "someuser",
+		Idk: "abc123",
+	}
+	m.Func.GetUserByIdentity.Returns.Err = nil
 	return m
 }

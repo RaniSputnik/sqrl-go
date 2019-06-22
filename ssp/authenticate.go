@@ -1,7 +1,6 @@
 package ssp
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -22,8 +21,12 @@ func serverError(response *sqrl.ServerMsg) {
 	response.Tif |= sqrl.TIFCommandFailed
 }
 
-func Authenticate(server *sqrl.Server, store Store) http.Handler {
+// TODO: This method is ridiculously large, we should be able to break it down
+// and move some of the functionality (particularly validation) to the core SQRL
+// package for folks who don't need a SSP server.
+func Authenticate(server *sqrl.Server, store Store, tokens *TokenGenerator) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		log.Printf("Got SQRL request: %v\n", r)
 
 		response := genNextResponse(server, r)
@@ -70,12 +73,12 @@ func Authenticate(server *sqrl.Server, store Store) http.Handler {
 			Id:   nut,
 			Next: response.Nut,
 		}
-		if err := store.SaveTransaction(r.Context(), thisTransaction); err != nil {
+		if err := store.SaveTransaction(ctx, thisTransaction); err != nil {
 			log.Printf("Failed to save transaction: %v\n", err)
 			serverError(response)
 			return
 		}
-		firstTransaction, err := store.GetFirstTransaction(r.Context(), nut)
+		firstTransaction, err := store.GetFirstTransaction(ctx, nut)
 		if err != nil {
 			log.Printf("Failed to retrieve first transaction: %v\n", err)
 			serverError(response)
@@ -85,32 +88,44 @@ func Authenticate(server *sqrl.Server, store Store) http.Handler {
 			firstTransaction = thisTransaction
 		}
 
-		// TODO: Fetch user details
-		// TODO: Fetch user from previous identity
-
 		// TODO: Test for IP Match
 
-		// TODO: Pass previous identities to "known"
-		isKnown, err := store.GetIsKnown(r.Context(), client.Idk)
+		// TODO: Pass previous identities to "GetByIdentity"
+		currentUser, err := store.GetUserByIdentity(ctx, client.Idk)
 		if err != nil {
 			log.Printf("Failed to determine if identity is known: %v\n", err)
 			serverError(response)
 			return
-		} else if isKnown {
+		} else if currentUser != nil {
 			response.Tif |= sqrl.TIFCurrentIDMatch
 		}
 
 		switch client.Cmd {
 		case sqrl.CmdIdent:
-			token := "todo-token"
-			err := store.SaveIdentSuccess(r.Context(), firstTransaction.Id, token)
+			// Create user if they do not already exist
+			if currentUser == nil {
+				currentUser, err = store.CreateUser(ctx, client.Idk)
+				if err != nil {
+					log.Printf("Failed to create user: %v\n", err)
+					serverError(response)
+					return
+				}
+			}
+
+			// Generate a new token that can be exchanged for user credentials
+			// TODO: It would be great if we could guarantee the size of tokens
+			// for DB backends that want to specify the column size for the token
+			token := tokens.Token(currentUser.Id)
+			// Record that this transaction was a success, store the token
+			err = store.SaveIdentSuccess(r.Context(), firstTransaction.Id, token)
 			if err != nil {
-				log.Fatalf("Failed to check authenticated: %v\n", err)
+				log.Fatalf("Failed to save ident success: %v\n", err)
 				serverError(response)
+				return
 			}
 
 			if client.HasOpt(sqrl.OptCPS) {
-				response.URL = fmt.Sprintf("%s?%s", server.RedirectURL(), token)
+				response.URL = getTokenRedirectURL(server, token)
 			}
 		case sqrl.CmdQuery:
 			// TODO: Anything need to be done here?

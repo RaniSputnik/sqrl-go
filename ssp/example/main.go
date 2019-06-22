@@ -1,7 +1,11 @@
 package main
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
 	"html/template"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
@@ -12,6 +16,12 @@ import (
 
 // TODO: Do not use this
 var todoKey = make([]byte, 16)
+
+const clientSecret = "something-very-secret"
+
+const (
+	CookieSQRLUser = "sqrl_user"
+)
 
 func main() {
 	// TODO: This builder is a bit gross
@@ -25,15 +35,23 @@ func main() {
 		// in ssp and configured here. Should we only provide
 		// the /sqrl part here? Or should cli.sqrl be moved out
 		// of ssp.Handler?
-		WithCLientEndpoint("/sqrl/cli.sqrl")
+		WithClientEndpoint("/sqrl/cli.sqrl")
+
+	serverToServerProtection := func(r *http.Request) error {
+		if r.Header.Get("X-Client-Secret") != clientSecret {
+			return errors.New("Invalid X-Client-Secret header")
+		}
+		return nil
+	}
 
 	dir := "static"
 	fs := http.FileServer(http.Dir(dir))
 	http.Handle("/static/", http.StripPrefix("/static", fs))
 	// TODO: Don't strip the trailing slash here or else gorilla Mux will become confused
 	// and attempt to clean+rediect. Is this something that we should handle in library code?
-	http.Handle("/sqrl/", http.StripPrefix("/sqrl", ssp.Handler(config)))
-	http.Handle("/callback", authCallbackHandler())
+	http.Handle("/sqrl/", http.StripPrefix("/sqrl", ssp.Handler(config, serverToServerProtection)))
+	http.Handle("/callback", authCallbackHandler("http://localhost:8080/sqrl/token"))
+	http.Handle("/logout", logoutHandler())
 	http.Handle("/", indexHandler())
 
 	port := ":8080"
@@ -43,17 +61,59 @@ func main() {
 	}
 }
 
-func authCallbackHandler() http.HandlerFunc {
+func authCallbackHandler(sspTokenURL string) http.HandlerFunc {
+	client := &http.Client{
+		Timeout: time.Second * 5,
+	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
-		if _, err := w.Write([]byte("TODO")); err != nil {
-			log.Printf("Failed to write callback response: %v", err)
+		token := r.URL.Query().Get("token")
+		if token == "" {
+			log.Printf("Callback called without token")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
+
+		userId, err := validateToken(client, sspTokenURL, token)
+		if err != nil {
+			log.Printf("Failed to validate token: %+v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if userId == "" {
+			log.Printf("Invalid token: %s", token)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		// Note: this is not a secure way of setting cookies
+		// for authentication state, you should use something
+		// like http://www.gorillatoolkit.org/pkg/securecookie
+		// in a real project.
+		http.SetCookie(w, &http.Cookie{
+			Name:  CookieSQRLUser,
+			Value: userId,
+		})
+		http.Redirect(w, r, "/", http.StatusFound)
+	}
+}
+
+func logoutHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cookie, err := r.Cookie(CookieSQRLUser); err == nil {
+			cookie.Expires = time.Now()
+			http.SetCookie(w, cookie)
+		}
+		http.Redirect(w, r, "/", http.StatusFound)
 	}
 }
 
 func indexHandler() http.HandlerFunc {
 	type templateData struct {
-		Session string
+		Authenticated bool
+		UserID        string
+		Session       string
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -65,10 +125,47 @@ func indexHandler() http.HandlerFunc {
 			return
 		}
 
+		var userID string
+		if cookie, err := r.Cookie(CookieSQRLUser); err == nil {
+			userID = cookie.Value
+		}
+
 		if err := tmpl.Execute(w, templateData{
-			Session: "TODO",
+			Authenticated: userID != "",
+			UserID:        userID,
+			Session:       "TODO",
 		}); err != nil {
 			log.Printf("Failed to render template: %v", err)
 		}
 	}
+}
+
+func validateToken(client *http.Client, sspTokenURL string, token string) (userId string, err error) {
+	type tokenResponse struct {
+		User string `json:"user"`
+	}
+
+	url := fmt.Sprintf("%s?token=%s", sspTokenURL, token)
+	r, _ := http.NewRequest(http.MethodGet, url, nil)
+	r.Header.Set("X-Client-Secret", clientSecret)
+	res, err := client.Do(r)
+	if err != nil {
+		return "", err
+	}
+	if res.StatusCode == http.StatusNotFound {
+		return "", nil
+	}
+	if res.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("remote server returned error when validating token: %s", res.Status)
+	}
+
+	defer res.Body.Close()
+	bytes, err := ioutil.ReadAll(res.Body)
+
+	var got tokenResponse
+	err = json.Unmarshal(bytes, &got)
+	if err != nil {
+		log.Printf("Failed to decode body: %s", bytes)
+	}
+	return got.User, err
 }
