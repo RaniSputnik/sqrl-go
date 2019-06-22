@@ -12,7 +12,12 @@ type Store interface {
 	// the current transaction is the first transaction in the exchange.
 	GetFirstTransaction(ctx context.Context, nut sqrl.Nut) (*Transaction, error)
 
+	// SaveTransaction stores a verified transaction in the DB.
 	SaveTransaction(ctx context.Context, t *Transaction) error
+
+	// SaveIdentSuccess stores a successful ident query from a client. The token
+	// that will be returned to the client is stored to allow for retrieval
+	// (for the pag.sqrl endpoint).
 	SaveIdentSuccess(ctx context.Context, nut sqrl.Nut, token string) error
 
 	// GetIdentSuccess returns a previously saved token for a given transaction nut
@@ -20,6 +25,10 @@ type Store interface {
 	// has not yet been saved as successful.
 	GetIdentSuccess(ct context.Context, nut sqrl.Nut) (token string, err error)
 
+	// GetIsKnown returns whether the given sqrl identity has been seen in
+	// previous SQRL transactions.
+	// TODO: Clarify exactly when a identity is considered "known"
+	// is it after a successful query? Or after successful ident?
 	GetIsKnown(ctx context.Context, id sqrl.Identity) (bool, error)
 }
 
@@ -31,19 +40,3 @@ type Transaction struct {
 	// Client string
 	// Server string
 }
-
-// // TODO: Save this to the DB to 'cache' a reference
-// type sessionTransaction struct {
-// 	// The id of the transaction that started this session
-// 	// Note: If Id == Transaction this is the first transaction
-// 	// in a session.
-// 	Id sqrl.Nut
-// 	// The id of the transaction this link refers to.
-// 	Transaction sqrl.Nut
-// }
-
-// // Populated using session transactions
-// // probably not needed but here for reference
-// type session struct {
-// 	Transactions []Transaction
-// }
