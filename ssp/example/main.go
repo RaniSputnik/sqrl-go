@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"html/template"
 	"log"
 	"net/http"
@@ -12,6 +13,8 @@ import (
 
 // TODO: Do not use this
 var todoKey = make([]byte, 16)
+
+const clientSecret = "something-very-secret"
 
 func main() {
 	// TODO: This builder is a bit gross
@@ -27,12 +30,19 @@ func main() {
 		// of ssp.Handler?
 		WithCLientEndpoint("/sqrl/cli.sqrl")
 
+	serverToServerProtection := func(r *http.Request) error {
+		if r.Header.Get("X-Client-Secret") != clientSecret {
+			return errors.New("Invalid X-Client-Secret header")
+		}
+		return nil
+	}
+
 	dir := "static"
 	fs := http.FileServer(http.Dir(dir))
 	http.Handle("/static/", http.StripPrefix("/static", fs))
 	// TODO: Don't strip the trailing slash here or else gorilla Mux will become confused
 	// and attempt to clean+rediect. Is this something that we should handle in library code?
-	http.Handle("/sqrl/", http.StripPrefix("/sqrl", ssp.Handler(config)))
+	http.Handle("/sqrl/", http.StripPrefix("/sqrl", ssp.Handler(config, serverToServerProtection)))
 	http.Handle("/callback", authCallbackHandler())
 	http.Handle("/", indexHandler())
 

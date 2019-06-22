@@ -14,7 +14,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func Handler(s *sqrl.Server) http.Handler {
+func Handler(s *sqrl.Server, authFunc ServerToServerAuthValidationFunc) http.Handler {
 	// TODO: Make this configurable
 	logger := log.New(os.Stdout, "", 0)
 
@@ -25,6 +25,13 @@ func Handler(s *sqrl.Server) http.Handler {
 	r.HandleFunc("/qr.png", qrHandler(s, logger))
 	r.Handle("/cli.sqrl", Authenticate(s, store))
 	r.Handle("/pag.sqrl", PagHandler(s, store))
+
+	userStore := &todoUserStore{}
+	protect := ServerToServerAuthMiddleware(authFunc, logger)
+	r.Handle("/tokens", protect(TokenHandler(s, userStore, logger))).Methods(http.MethodGet)
+	// r.Handle("/users", protect(AddUserHandler(userStore, logger))).Methods(http.MethodPost)
+	// r.Handle("/users", protecte(DeleteUserHandler(userStore, logger))).Methods(http.MethodDelete)
+
 	return r
 }
 

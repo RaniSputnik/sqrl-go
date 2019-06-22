@@ -140,7 +140,3 @@ func setupAuthenticate(body string) (*httptest.ResponseRecorder, *http.Request) 
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	return w, r
 }
-
-func anyServer() *sqrl.Server {
-	return sqrl.Configure(make([]byte, 16))
-}
