@@ -45,7 +45,7 @@
   </table>
   <div class="red_tight_headline" style="font-size:16pt; margin-top:0.5em;">SQRL Service Provider API Test &amp; Demo
   </div>
-  <form method="post" autocomplete="off" style="text-align: center;">
+  <div style="text-align: center;">
     <img id="probe" style="display:none;" src="http://www.rebindtest.com/open.gif">
 
     <div id="mixed"
@@ -69,9 +69,21 @@
       </div>
     </noscript>
 
-    <div style="margin-bottom:1em;"><b style="font-size:12pt;">This web browser is NOT currently logged into this
-        SQRL demonstration.</b></div>
+    <div style="margin-bottom:1em; font-size:12pt;">
+      {{ if .Authenticated}}
+        <b style="color:#080;">SQRL User” is logged in.</b>
+      {{ else }}
+        <b>This web browser is NOT currently logged into this SQRL demonstration.</b>
+      {{ end }}
+    </div>
 
+    {{ if .Authenticated }}
+
+    <form action="/logout" method="get">
+      <input type="submit" value="Sign Out"/>
+    </form>
+
+    {{ else }}
     <table cellspacing="0" cellpadding="0" style='margin: auto;'>
       <tr>
         <td style="text-align:center; font-family:Arial, Helvetica, sans-serif; font-size:9pt; color:#444;">
@@ -140,26 +152,14 @@
     <script>
       SQRL.inject({ api: '/sqrl' })
     </script>
+    {{ end }}
 
     <div style="position:fixed; bottom:0%; width:100%; background:#fff; border-top:#ccc 1px solid; padding-top:3px;">
-
-      <table cellspacing="0" cellpadding="0" class="mono" style="width:100%; font-size:11pt; color:#888">
-        <tr>
-          <td style="width:33%;">Non-SQRL sign In: <span style="color:#000">---</span></td>
-          <td style="width:33%;">SQRL identity recovery: <span style="color:#000">---</span></td>
-        </tr>
-      </table>
-
-      <table cellspacing="0" cellpadding="0" class="mono" style="width:100%; font-size:11pt; color:#888">
-        <tr>
-          <td style="width:33%;">SQRL ID: <span style="color:#000">---</span></td>
-          <td style="width:33%;">Browser Session: <span style="color:#000">{{ .Session }}</span></td>
-          <td style="width:33%;">Account ID: <span style="color:#000">---</span></td>
-        </tr>
-      </table>
-
+      <div style="text-align:center; padding: 1rem;">SQRL ID: <span style="color:#000">
+        {{if .Authenticated }}{{ .UserID }}{{else}}---{{end}}</span>
+      </div>
     </div>
-  </form>
+  </div>
 </body>
 
 </html>

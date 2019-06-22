@@ -19,6 +19,10 @@ var todoKey = make([]byte, 16)
 
 const clientSecret = "something-very-secret"
 
+const (
+	CookieSQRLUser = "sqrl_user"
+)
+
 func main() {
 	// TODO: This builder is a bit gross
 	// Maybe we can move to using option functions
@@ -47,6 +51,7 @@ func main() {
 	// and attempt to clean+rediect. Is this something that we should handle in library code?
 	http.Handle("/sqrl/", http.StripPrefix("/sqrl", ssp.Handler(config, serverToServerProtection)))
 	http.Handle("/callback", authCallbackHandler("http://localhost:8080/sqrl/token"))
+	http.Handle("/logout", logoutHandler())
 	http.Handle("/", indexHandler())
 
 	port := ":8080"
@@ -82,14 +87,33 @@ func authCallbackHandler(sspTokenURL string) http.HandlerFunc {
 			return
 		}
 
-		// TODO: Set cookie instead of returning user id
+		// Note: this is not a secure way of setting cookies
+		// for authentication state, you should use something
+		// like http://www.gorillatoolkit.org/pkg/securecookie
+		// in a real project.
+		http.SetCookie(w, &http.Cookie{
+			Name:  CookieSQRLUser,
+			Value: userId,
+		})
+		http.Redirect(w, r, "/", http.StatusFound)
+	}
+}
+
+func logoutHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cookie, err := r.Cookie(CookieSQRLUser); err == nil {
+			cookie.Expires = time.Now()
+			http.SetCookie(w, cookie)
+		}
 		http.Redirect(w, r, "/", http.StatusFound)
 	}
 }
 
 func indexHandler() http.HandlerFunc {
 	type templateData struct {
-		Session string
+		Authenticated bool
+		UserID        string
+		Session       string
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -101,8 +125,15 @@ func indexHandler() http.HandlerFunc {
 			return
 		}
 
+		var userID string
+		if cookie, err := r.Cookie(CookieSQRLUser); err == nil {
+			userID = cookie.Value
+		}
+
 		if err := tmpl.Execute(w, templateData{
-			Session: "TODO",
+			Authenticated: userID != "",
+			UserID:        userID,
+			Session:       "TODO",
 		}); err != nil {
 			log.Printf("Failed to render template: %v", err)
 		}
