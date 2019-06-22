@@ -58,17 +58,18 @@ var (
 	ErrTokenFormatInvalid = errors.New("token format invalid")
 )
 
-func (g *TokenGenerator) ValidateToken(token string) error {
+func (g *TokenGenerator) ValidateToken(token string) (userId string, err error) {
+	emptyUserId := ""
 	t, err := g.decryptToken(token)
 	if err != nil {
-		return ErrTokenFormatInvalid
+		return emptyUserId, ErrTokenFormatInvalid
 	}
 	issuedAt := time.Unix(t.CreatedAt, 0)
 	if g.NowFunc().Sub(issuedAt) > g.tokenExpiry {
-		return ErrTokenExpired
+		return emptyUserId, ErrTokenExpired
 	}
 	// TODO: Any kind of validation needed of user id?
-	return nil
+	return t.UserId, nil
 }
 
 var b64 = base64.URLEncoding.WithPadding(base64.NoPadding)

@@ -42,23 +42,32 @@ func TestTokenValidation(t *testing.T) {
 
 	t.Run("ReturnsNoErrorForValidToken", func(t *testing.T) {
 		validToken := "hq84C7vMmeYtNPo5oEdsSDI2rCjpWAvs-U04DvVuQ79uVVBvHq--MwabFJVfbbI"
-		err := generator.ValidateToken(validToken)
+		_, err := generator.ValidateToken(validToken)
 		assert.Nil(t, err)
 	})
 
+	t.Run("ReturnsUserIDForValidToken", func(t *testing.T) {
+		validToken := "hq84C7vMmeYtNPo5oEdsSDI2rCjpWAvs-U04DvVuQ79uVVBvHq--MwabFJVfbbI"
+		expectedUserID := "someUser"
+		uid, _ := generator.ValidateToken(validToken)
+		assert.Equal(t, expectedUserID, uid)
+	})
+
 	t.Run("ReturnsTokenExpiredForOldToken", func(t *testing.T) {
+		// Token generated at 2019-06-22 15:32:00 +0100 BST
+		// Expiry set to 1 minute by default
 		expiredToken := "Mq1C2bWBM7-gld_1bj_h7yZiL0OLggOxkuq6KXD7JTcuuykuZ0DljmpzTKpZBv8"
-		err := generator.ValidateToken(expiredToken)
+		_, err := generator.ValidateToken(expiredToken)
 		assert.Equal(t, ssp.ErrTokenExpired, err)
 	})
 
 	t.Run("ReturnsTokenFormatInvalidForEmptyToken", func(t *testing.T) {
-		err := generator.ValidateToken("")
+		_, err := generator.ValidateToken("")
 		assert.Equal(t, ssp.ErrTokenFormatInvalid, err)
 	})
 
 	t.Run("ReturnsTokenFormatInvalidForRandomString", func(t *testing.T) {
-		err := generator.ValidateToken("someinvalidtoken")
+		_, err := generator.ValidateToken("someinvalidtoken")
 		assert.Equal(t, ssp.ErrTokenFormatInvalid, err)
 	})
 }
