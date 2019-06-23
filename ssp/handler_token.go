@@ -13,7 +13,7 @@ func (server *Server) TokenHandler(tokens *TokenGenerator) http.Handler {
 		User string `json:"user"`
 	}
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token := r.URL.Query().Get("token")
 		userId, err := tokens.ValidateToken(token)
 		if err != nil {
@@ -29,4 +29,6 @@ func (server *Server) TokenHandler(tokens *TokenGenerator) http.Handler {
 			server.logger.Printf("User write unsuccessful: %v", err)
 		}
 	})
+
+	return server.protect(h)
 }

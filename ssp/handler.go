@@ -11,7 +11,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func (s *Server) Handler(authFunc ServerToServerAuthValidationFunc) http.Handler {
+func (s *Server) Handler() http.Handler {
 	store := NewMemoryStore()
 	tokens := NewTokenGenerator(s.key)
 
@@ -21,12 +21,7 @@ func (s *Server) Handler(authFunc ServerToServerAuthValidationFunc) http.Handler
 	r.Handle("/cli.sqrl", s.ClientHandler(store, tokens))
 	r.Handle("/pag.sqrl", s.PagHandler(store))
 
-	// TODO: Protecting these endpoints should be done in the individual
-	// handlers - if someone were to use the TokenHandler directly (ie.
-	// not calling this Handler method) then they should still get the
-	// protection mechanism they have configured on the server.
-	protect := s.serverToServerAuthMiddleware(authFunc)
-	r.Handle("/token", protect(s.TokenHandler(tokens))).Methods(http.MethodGet)
+	r.Handle("/token", s.TokenHandler(tokens)).Methods(http.MethodGet)
 	// r.Handle("/users", protect(AddUserHandler(userStore, logger))).Methods(http.MethodPost)
 	// r.Handle("/users", protecte(DeleteUserHandler(userStore, logger))).Methods(http.MethodDelete)
 

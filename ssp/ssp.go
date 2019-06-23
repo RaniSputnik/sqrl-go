@@ -21,6 +21,8 @@ type Server struct {
 	redirectURL    string
 	clientEndpoint string
 
+	validator ServerToServerAuthValidationFunc
+
 	nutter *sqrl.Server
 }
 
@@ -34,6 +36,9 @@ func Configure(key []byte, redirectURL string) *Server {
 		redirectURL:    redirectURL,
 		clientEndpoint: "/cli.sqrl",
 
+		// TODO: Is there a more sensible default we could use here?
+		validator: noProtection,
+
 		// TODO: This should actually be named something
 		// more like "nut generator"
 		nutter: sqrlServer,
@@ -45,6 +50,11 @@ func (s *Server) WithLogger(l Logger) *Server {
 		l = donothingLogger{}
 	}
 	s.logger = l
+	return s
+}
+
+func (s *Server) WithAuthentication(validator ServerToServerAuthValidationFunc) *Server {
+	s.validator = validator
 	return s
 }
 
