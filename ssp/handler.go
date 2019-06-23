@@ -13,7 +13,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func Handler(s *Server, authFunc ServerToServerAuthValidationFunc) http.Handler {
+func (s *Server) Handler(authFunc ServerToServerAuthValidationFunc) http.Handler {
 	// TODO: Make this configurable
 	logger := log.New(os.Stdout, "", 0)
 
@@ -21,20 +21,24 @@ func Handler(s *Server, authFunc ServerToServerAuthValidationFunc) http.Handler 
 	tokens := NewTokenGenerator(s.key)
 
 	r := mux.NewRouter().StrictSlash(false)
-	r.HandleFunc("/nut.json", NutHandler(s, logger))
-	r.HandleFunc("/qr.png", QRCodeHandler(s, logger))
-	r.Handle("/cli.sqrl", ClientHandler(s, store, tokens))
-	r.Handle("/pag.sqrl", PagHandler(s, store))
+	r.HandleFunc("/nut.json", s.NutHandler(logger))
+	r.HandleFunc("/qr.png", s.QRCodeHandler(logger))
+	r.Handle("/cli.sqrl", s.ClientHandler(store, tokens))
+	r.Handle("/pag.sqrl", s.PagHandler(store))
 
+	// TODO: Protecting these endpoints should be done in the individual
+	// handlers - if someone were to use the TokenHandler directly (ie.
+	// not calling this Handler method) then they should still get the
+	// protection mechanism they have configured on the server.
 	protect := ServerToServerAuthMiddleware(authFunc, logger)
-	r.Handle("/token", protect(TokenHandler(s, tokens, logger))).Methods(http.MethodGet)
+	r.Handle("/token", protect(s.TokenHandler(tokens, logger))).Methods(http.MethodGet)
 	// r.Handle("/users", protect(AddUserHandler(userStore, logger))).Methods(http.MethodPost)
 	// r.Handle("/users", protecte(DeleteUserHandler(userStore, logger))).Methods(http.MethodDelete)
 
 	return r
 }
 
-func NutHandler(server *Server, logger *log.Logger) http.HandlerFunc {
+func (server *Server) NutHandler(logger *log.Logger) http.HandlerFunc {
 	type nutResponse struct {
 		Nut string `json:"nut"`
 	}
@@ -53,7 +57,7 @@ func NutHandler(server *Server, logger *log.Logger) http.HandlerFunc {
 	}
 }
 
-func QRCodeHandler(server *Server, logger *log.Logger) http.HandlerFunc {
+func (server *Server) QRCodeHandler(logger *log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := r.URL.Query()
 		nut := query.Get("nut")

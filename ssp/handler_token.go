@@ -9,7 +9,7 @@ import (
 // TokenHandler is an endpoint repsonsible for validating and exchanging the token
 // issued to the client for user details so that the resource server can associate
 // that SQRL user with their own copy of the user identity.
-func TokenHandler(s *Server, tokens *TokenGenerator, logger *log.Logger) http.Handler {
+func (server *Server) TokenHandler(tokens *TokenGenerator, logger *log.Logger) http.Handler {
 	type tokenResponse struct {
 		User string `json:"user"`
 	}

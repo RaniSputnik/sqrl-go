@@ -27,7 +27,7 @@ func main() {
 	// Maybe we can move to using option functions
 	// like Gorilla Handlers?
 	// http://www.gorillatoolkit.org/pkg/handlers#CORSOption
-	config := ssp.Configure(todoKey, "http://localhost:8080/callback").
+	sspServer := ssp.Configure(todoKey, "http://localhost:8080/callback").
 		WithNutExpiry(time.Minute * 5).
 		// TODO: bit lame that this cli.sqrl is both hardcoded
 		// in ssp and configured here. Should we only provide
@@ -47,7 +47,7 @@ func main() {
 	http.Handle("/static/", http.StripPrefix("/static", fs))
 	// TODO: Don't strip the trailing slash here or else gorilla Mux will become confused
 	// and attempt to clean+rediect. Is this something that we should handle in library code?
-	http.Handle("/sqrl/", http.StripPrefix("/sqrl", ssp.Handler(config, serverToServerProtection)))
+	http.Handle("/sqrl/", http.StripPrefix("/sqrl", sspServer.Handler(serverToServerProtection)))
 	http.Handle("/callback", authCallbackHandler("http://localhost:8080/sqrl/token"))
 	http.Handle("/logout", logoutHandler())
 	http.Handle("/", indexHandler())
