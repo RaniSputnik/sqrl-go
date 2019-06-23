@@ -8,14 +8,14 @@ import (
 // TokenHandler is an endpoint repsonsible for validating and exchanging the token
 // issued to the client for user details so that the resource server can associate
 // that SQRL user with their own copy of the user identity.
-func (server *Server) TokenHandler(tokens *TokenGenerator) http.Handler {
+func (server *Server) TokenHandler(tokens TokenValidator) http.Handler {
 	type tokenResponse struct {
 		User string `json:"user"`
 	}
 
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token := r.URL.Query().Get("token")
-		userId, err := tokens.ValidateToken(token)
+		token := Token(r.URL.Query().Get("token"))
+		userId, err := tokens.Validate(token)
 		if err != nil {
 			server.logger.Printf("Token validation failed: %+v", err)
 			// TODO: Standardise error responses

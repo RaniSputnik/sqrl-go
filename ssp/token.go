@@ -13,44 +13,52 @@ import (
 	"time"
 )
 
+type Token string
+
+type TokenGenerator interface {
+	Token(userId string) Token
+}
+
+type TokenValidator interface {
+	Validate(token Token) (userId string, err error)
+}
+
+type TokenExchange interface {
+	TokenGenerator
+	TokenValidator
+}
+
 type token struct {
 	UserId    string
 	CreatedAt int64
 }
 
-func defaultNowFunc() time.Time {
-	return time.Now()
-}
-
 // TODO: There is a lot of similarities here between sqrl.Server
 // and the token generator - how could we share more of the logic
 // between the two? Maybe managed aes is not required?
-func NewTokenGenerator(key []byte) *TokenGenerator {
+func DefaultExchange(key []byte, expiry time.Duration) TokenExchange {
 	aesgcm := genAesgcm(key)
-	return &TokenGenerator{
+	return &defaultExchange{
 		aesgcm:      aesgcm,
-		tokenExpiry: time.Minute,
-		NowFunc:     defaultNowFunc,
+		tokenExpiry: expiry,
 	}
 }
 
-type TokenGenerator struct {
+type defaultExchange struct {
 	aesgcm      cipher.AEAD
 	tokenExpiry time.Duration
-
-	NowFunc func() time.Time
 }
 
-func (g *TokenGenerator) Token(userId string) string {
+func (g *defaultExchange) Token(userId string) Token {
 	if strings.Contains(userId, ",") {
 		// Defensive against sneaky (and probably malicious) userIds
 		panic("userId must not contain commas (,)")
 	}
 	t := g.encryptToken(token{
 		UserId:    userId,
-		CreatedAt: g.NowFunc().Unix(),
+		CreatedAt: time.Now().Unix(),
 	})
-	return string(t)
+	return Token(t)
 }
 
 var (
@@ -58,13 +66,13 @@ var (
 	ErrTokenFormatInvalid = errors.New("token format invalid")
 )
 
-func (g *TokenGenerator) ValidateToken(token string) (userId string, err error) {
-	t, err := g.decryptToken(token)
+func (e *defaultExchange) Validate(token Token) (userId string, err error) {
+	t, err := e.decryptToken(token)
 	if err != nil {
 		return "", ErrTokenFormatInvalid
 	}
 	issuedAt := time.Unix(t.CreatedAt, 0)
-	if g.NowFunc().Sub(issuedAt) > g.tokenExpiry {
+	if time.Since(issuedAt) > e.tokenExpiry {
 		return "", ErrTokenExpired
 	}
 	// TODO: Any kind of validation needed of user id?
@@ -73,29 +81,29 @@ func (g *TokenGenerator) ValidateToken(token string) (userId string, err error) 
 
 var b64 = base64.URLEncoding.WithPadding(base64.NoPadding)
 
-func (g *TokenGenerator) encryptToken(t token) string {
+func (e *defaultExchange) encryptToken(t token) Token {
 	payload := fmt.Sprintf("%s,%d", t.UserId, t.CreatedAt)
-	nonce := randBytes(g.aesgcm.NonceSize())
+	nonce := randBytes(e.aesgcm.NonceSize())
 	// TODO: Ensure payload is of suitable length
-	encryptedToken := g.aesgcm.Seal(nil, nonce, []byte(payload), nil)
+	encryptedToken := e.aesgcm.Seal(nil, nonce, []byte(payload), nil)
 	encryptedTokenAndNonce := append(nonce, encryptedToken...)
-	return b64.EncodeToString(encryptedTokenAndNonce)
+	return Token(b64.EncodeToString(encryptedTokenAndNonce))
 }
 
-func (g *TokenGenerator) decryptToken(t string) (token, error) {
+func (e *defaultExchange) decryptToken(t Token) (token, error) {
 	invalidToken := token{}
-	encryptedTokenAndNonce, err := b64.DecodeString(t)
+	encryptedTokenAndNonce, err := b64.DecodeString(string(t))
 	if err != nil {
 		return invalidToken, err
 	}
-	nonceSize := g.aesgcm.NonceSize()
+	nonceSize := e.aesgcm.NonceSize()
 	if len(encryptedTokenAndNonce) <= nonceSize {
 		return invalidToken, errors.New("token length less than nonce size")
 	}
 	nonce := encryptedTokenAndNonce[:nonceSize]
 	encryptedToken := encryptedTokenAndNonce[nonceSize:]
 
-	decryptedToken, err := g.aesgcm.Open(nil, nonce, encryptedToken, nil)
+	decryptedToken, err := e.aesgcm.Open(nil, nonce, encryptedToken, nil)
 	if err != nil {
 		return invalidToken, err
 	}

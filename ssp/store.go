@@ -18,12 +18,12 @@ type TransactionStore interface {
 	// SaveIdentSuccess stores a successful ident query from a client. The token
 	// that will be returned to the client is stored to allow for retrieval
 	// (for the pag.sqrl endpoint).
-	SaveIdentSuccess(ctx context.Context, nut sqrl.Nut, token string) error
+	SaveIdentSuccess(ctx context.Context, nut sqrl.Nut, token Token) error
 
 	// GetIdentSuccess returns a previously saved token for a given transaction nut
 	// if such a token exists. An empty string will be returned if the given nut
 	// has not yet been saved as successful.
-	GetIdentSuccess(ctx context.Context, nut sqrl.Nut) (token string, err error)
+	GetIdentSuccess(ctx context.Context, nut sqrl.Nut) (token Token, err error)
 
 	// Superceeded by UserStore.GetUserForToken
 	// GetIsKnown(ctx context.Context, id sqrl.Identity) (bool, error)

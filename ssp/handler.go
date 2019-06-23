@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	qrcode "github.com/skip2/go-qrcode"
 
@@ -13,7 +14,7 @@ import (
 
 func (s *Server) Handler() http.Handler {
 	store := NewMemoryStore()
-	tokens := NewTokenGenerator(s.key)
+	tokens := DefaultExchange(s.key, time.Minute)
 
 	r := mux.NewRouter().StrictSlash(false)
 	r.HandleFunc("/nut.json", s.NutHandler())
@@ -101,6 +102,6 @@ func requestDomain(r *http.Request) string {
 	return r.Host
 }
 
-func getTokenRedirectURL(server *Server, token string) string {
+func getTokenRedirectURL(server *Server, token Token) string {
 	return fmt.Sprintf("%s?token=%s", server.redirectURL, token)
 }

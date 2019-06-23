@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -121,6 +122,6 @@ func anyServer() *ssp.Server {
 	return ssp.Configure(make([]byte, 16), "http://example.com/auth/callback")
 }
 
-func anyTokenGenerator() *ssp.TokenGenerator {
-	return ssp.NewTokenGenerator(make([]byte, 16))
+func anyTokenExchange() ssp.TokenExchange {
+	return ssp.DefaultExchange(make([]byte, 16), time.Minute)
 }

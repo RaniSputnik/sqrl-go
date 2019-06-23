@@ -80,7 +80,7 @@ func TestMemoryStoreIdent(t *testing.T) {
 
 	t.Run("ReturnsPreviouslySavedToken", func(t *testing.T) {
 		s := ssp.NewMemoryStore()
-		givenToken := "abcdef1234567890"
+		givenToken := ssp.Token("abcdef1234567890")
 
 		_ = s.SaveIdentSuccess(ctx, knownNut, givenToken)
 		gotToken, err := s.GetIdentSuccess(ctx, knownNut)

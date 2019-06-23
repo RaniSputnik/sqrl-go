@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/RaniSputnik/sqrl-go/ssp"
 	"github.com/stretchr/testify/assert"
@@ -13,7 +14,7 @@ import (
 func TestTokenHandler(t *testing.T) {
 	t.Run("FailsWith401IfAuthFunctionRejects", func(t *testing.T) {
 		rejectAll := func(_ *http.Request) error { return errors.New("reject everyone") }
-		tokens := ssp.NewTokenGenerator(make([]byte, 16))
+		tokens := ssp.DefaultExchange(make([]byte, 16), time.Minute)
 
 		h := anyServer().WithAuthentication(rejectAll).TokenHandler(tokens)
 		r := httptest.NewRequest(http.MethodGet, "/token", nil)
