@@ -6,8 +6,6 @@ import (
 
 type ServerToServerAuthValidationFunc func(r *http.Request) error
 
-type middleware func(http.Handler) http.Handler
-
 func (server *Server) protect(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := server.validator(r); err != nil {

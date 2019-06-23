@@ -124,12 +124,3 @@ func anyServer() *ssp.Server {
 func anyTokenGenerator() *ssp.TokenGenerator {
 	return ssp.NewTokenGenerator(make([]byte, 16))
 }
-
-func noProtection() ssp.ServerToServerAuthValidationFunc {
-	return func(r *http.Request) error {
-		// Allow all server-to-server requests through
-		// without authentication. Note: this should NEVER
-		// be done in the wild, it's okay for testing.
-		return nil
-	}
-}
