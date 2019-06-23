@@ -12,7 +12,7 @@ import (
 type inmemoryStore struct {
 	transactions      map[sqrl.Nut]*Transaction
 	firstTransactions map[sqrl.Nut]sqrl.Nut
-	tokens            map[sqrl.Nut]string
+	tokens            map[sqrl.Nut]Token
 	users             []*User
 
 	sync.Mutex
@@ -22,7 +22,7 @@ func NewMemoryStore() Store {
 	return &inmemoryStore{
 		transactions:      map[sqrl.Nut]*Transaction{},
 		firstTransactions: map[sqrl.Nut]sqrl.Nut{},
-		tokens:            map[sqrl.Nut]string{},
+		tokens:            map[sqrl.Nut]Token{},
 	}
 }
 
@@ -53,14 +53,14 @@ func (s *inmemoryStore) SaveTransaction(ctx context.Context, t *Transaction) err
 	return nil
 }
 
-func (s *inmemoryStore) SaveIdentSuccess(ctx context.Context, nut sqrl.Nut, token string) error {
+func (s *inmemoryStore) SaveIdentSuccess(ctx context.Context, nut sqrl.Nut, token Token) error {
 	s.Lock()
 	defer s.Unlock()
 	s.tokens[nut] = token
 	return nil
 }
 
-func (s *inmemoryStore) GetIdentSuccess(ctx context.Context, nut sqrl.Nut) (token string, err error) {
+func (s *inmemoryStore) GetIdentSuccess(ctx context.Context, nut sqrl.Nut) (token Token, err error) {
 	s.Lock()
 	defer s.Unlock()
 

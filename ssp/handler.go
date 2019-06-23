@@ -3,39 +3,33 @@ package ssp
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
-	"os"
 	"strconv"
+	"time"
 
-	sqrl "github.com/RaniSputnik/sqrl-go"
 	qrcode "github.com/skip2/go-qrcode"
 
 	"github.com/gorilla/mux"
 )
 
-func Handler(s *sqrl.Server, authFunc ServerToServerAuthValidationFunc) http.Handler {
-	// TODO: Make this configurable
-	logger := log.New(os.Stdout, "", 0)
-
+func (s *Server) Handler() http.Handler {
 	store := NewMemoryStore()
-	tokens := NewTokenGenerator(s.Key())
+	tokens := DefaultExchange(s.key, time.Minute)
 
 	r := mux.NewRouter().StrictSlash(false)
-	r.HandleFunc("/nut.json", nutHandler(s, logger))
-	r.HandleFunc("/qr.png", qrHandler(s, logger))
-	r.Handle("/cli.sqrl", Authenticate(s, store, tokens))
-	r.Handle("/pag.sqrl", PagHandler(s, store))
+	r.HandleFunc("/nut.json", s.NutHandler())
+	r.HandleFunc("/qr.png", s.QRCodeHandler())
+	r.Handle("/cli.sqrl", s.ClientHandler(store, tokens))
+	r.Handle("/pag.sqrl", s.PagHandler(store))
 
-	protect := ServerToServerAuthMiddleware(authFunc, logger)
-	r.Handle("/token", protect(TokenHandler(s, tokens, logger))).Methods(http.MethodGet)
+	r.Handle("/token", s.TokenHandler(tokens)).Methods(http.MethodGet)
 	// r.Handle("/users", protect(AddUserHandler(userStore, logger))).Methods(http.MethodPost)
 	// r.Handle("/users", protecte(DeleteUserHandler(userStore, logger))).Methods(http.MethodDelete)
 
 	return r
 }
 
-func nutHandler(server *sqrl.Server, logger *log.Logger) http.HandlerFunc {
+func (server *Server) NutHandler() http.HandlerFunc {
 	type nutResponse struct {
 		Nut string `json:"nut"`
 	}
@@ -46,27 +40,27 @@ func nutHandler(server *sqrl.Server, logger *log.Logger) http.HandlerFunc {
 		res := nutResponse{
 			Nut: server.Nut(clientID(r)).String(),
 		}
-		logger.Printf("Generated nut: %s", res.Nut)
+		server.logger.Printf("Generated nut: %s", res.Nut)
 
 		if err := json.NewEncoder(w).Encode(res); err != nil {
-			logger.Printf("Nut write unsuccessful: %v", err)
+			server.logger.Printf("Nut write unsuccessful: %v", err)
 		}
 	}
 }
 
-func qrHandler(server *sqrl.Server, logger *log.Logger) http.HandlerFunc {
+func (server *Server) QRCodeHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := r.URL.Query()
 		nut := query.Get("nut")
 		size := atoiWithDefault(query.Get("size"), 256)
 
 		if nut == "" {
-			logger.Printf("QR code requested with empty 'nut' parameter")
+			server.logger.Printf("QR code requested with empty 'nut' parameter")
 			w.WriteHeader(http.StatusNotFound) // TODO: default pending image
 			return
 		}
 		if r.Host == "" {
-			logger.Printf("QR code requested with no 'Host' header set")
+			server.logger.Printf("QR code requested with no 'Host' header set")
 			w.WriteHeader(http.StatusNotFound) // TODO: default error image
 			return
 		}
@@ -74,7 +68,7 @@ func qrHandler(server *sqrl.Server, logger *log.Logger) http.HandlerFunc {
 		loginURL := fmt.Sprintf("sqrl://%s/sqrl?nut=%s", requestDomain(r), nut)
 		bytes, err := qrcode.Encode(loginURL, qrcode.Medium, size)
 		if err != nil {
-			logger.Printf("Failed to encode login URL '%s': %v", loginURL, err)
+			server.logger.Printf("Failed to encode login URL '%s': %v", loginURL, err)
 			w.WriteHeader(http.StatusNotFound) // TODO: default error image
 			return
 		}
@@ -82,7 +76,7 @@ func qrHandler(server *sqrl.Server, logger *log.Logger) http.HandlerFunc {
 		w.Header().Set("Content-Type", "image/png")
 		w.WriteHeader(http.StatusOK)
 		if _, err := w.Write(bytes); err != nil {
-			logger.Printf("QR code write unsuccessful: %v", err)
+			server.logger.Printf("QR code write unsuccessful: %v", err)
 		}
 	}
 }
@@ -108,6 +102,6 @@ func requestDomain(r *http.Request) string {
 	return r.Host
 }
 
-func getTokenRedirectURL(server *sqrl.Server, token string) string {
-	return fmt.Sprintf("%s?token=%s", server.RedirectURL(), token)
+func getTokenRedirectURL(server *Server, token Token) string {
+	return fmt.Sprintf("%s?token=%s", server.redirectURL, token)
 }

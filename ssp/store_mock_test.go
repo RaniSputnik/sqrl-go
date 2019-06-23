@@ -32,7 +32,7 @@ type mockStore struct {
 			CalledWith struct {
 				Ctx   context.Context
 				Nut   sqrl.Nut
-				Token string
+				Token ssp.Token
 			}
 			Returns struct {
 				Err error
@@ -44,7 +44,7 @@ type mockStore struct {
 				Nut sqrl.Nut
 			}
 			Returns struct {
-				Token string
+				Token ssp.Token
 				Err   error
 			}
 		}
@@ -83,14 +83,14 @@ func (m *mockStore) SaveTransaction(ctx context.Context, t *ssp.Transaction) err
 	return m.Func.SaveTransaction.Returns.Err
 }
 
-func (m *mockStore) SaveIdentSuccess(ctx context.Context, nut sqrl.Nut, token string) error {
+func (m *mockStore) SaveIdentSuccess(ctx context.Context, nut sqrl.Nut, token ssp.Token) error {
 	m.Func.SaveIdentSuccess.CalledWith.Ctx = ctx
 	m.Func.SaveIdentSuccess.CalledWith.Nut = nut
 	m.Func.SaveIdentSuccess.CalledWith.Token = token
 	return m.Func.SaveIdentSuccess.Returns.Err
 }
 
-func (m *mockStore) GetIdentSuccess(ctx context.Context, nut sqrl.Nut) (token string, err error) {
+func (m *mockStore) GetIdentSuccess(ctx context.Context, nut sqrl.Nut) (token ssp.Token, err error) {
 	m.Func.GetIdentSuccess.CalledWith.Ctx = ctx
 	m.Func.GetIdentSuccess.CalledWith.Nut = nut
 	return m.Func.GetIdentSuccess.Returns.Token, m.Func.GetIdentSuccess.Returns.Err

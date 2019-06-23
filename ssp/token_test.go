@@ -13,7 +13,7 @@ import (
 var anyKey = make([]byte, 16)
 
 func TestTokenGeneration(t *testing.T) {
-	generator := ssp.NewTokenGenerator(anyKey)
+	generator := ssp.DefaultExchange(anyKey, time.Minute)
 
 	t.Run("ReturnsAToken", func(t *testing.T) {
 		got := generator.Token("someUser")
@@ -23,7 +23,7 @@ func TestTokenGeneration(t *testing.T) {
 
 	t.Run("Base64EncodesTheToken", func(t *testing.T) {
 		got := generator.Token("someUser")
-		_, err := base64.URLEncoding.WithPadding(base64.NoPadding).DecodeString(got)
+		_, err := base64.URLEncoding.WithPadding(base64.NoPadding).DecodeString(string(got))
 		t.Logf("Generated token: %s", got)
 		assert.Nil(t, err)
 	})
@@ -36,38 +36,38 @@ func TestTokenGeneration(t *testing.T) {
 }
 
 func TestTokenValidation(t *testing.T) {
-	generator := ssp.NewTokenGenerator(anyKey)
-	currentTime, _ := time.Parse("2006-01-02 15:04:05 -0700 MST", "2019-06-22 15:35:06 +0100 BST")
-	generator.NowFunc = func() time.Time { return currentTime }
+	generator := ssp.DefaultExchange(anyKey, time.Minute)
+	validToken := generator.Token("someUser")
 
 	t.Run("ReturnsNoErrorForValidToken", func(t *testing.T) {
-		validToken := "hq84C7vMmeYtNPo5oEdsSDI2rCjpWAvs-U04DvVuQ79uVVBvHq--MwabFJVfbbI"
-		_, err := generator.ValidateToken(validToken)
+		_, err := generator.Validate(validToken)
 		assert.Nil(t, err)
 	})
 
 	t.Run("ReturnsUserIDForValidToken", func(t *testing.T) {
-		validToken := "hq84C7vMmeYtNPo5oEdsSDI2rCjpWAvs-U04DvVuQ79uVVBvHq--MwabFJVfbbI"
 		expectedUserID := "someUser"
-		uid, _ := generator.ValidateToken(validToken)
+		uid, _ := generator.Validate(validToken)
 		assert.Equal(t, expectedUserID, uid)
 	})
 
 	t.Run("ReturnsTokenExpiredForOldToken", func(t *testing.T) {
-		// Token generated at 2019-06-22 15:32:00 +0100 BST
-		// Expiry set to 1 minute by default
-		expiredToken := "Mq1C2bWBM7-gld_1bj_h7yZiL0OLggOxkuq6KXD7JTcuuykuZ0DljmpzTKpZBv8"
-		_, err := generator.ValidateToken(expiredToken)
+		veryShortExpiry := time.Millisecond
+		exchangeWithShortExpiry := ssp.DefaultExchange(anyKey, veryShortExpiry)
+		expiredToken := exchangeWithShortExpiry.Token("someUser")
+
+		time.Sleep(veryShortExpiry * 3)
+
+		_, err := exchangeWithShortExpiry.Validate(expiredToken)
 		assert.Equal(t, ssp.ErrTokenExpired, err)
 	})
 
 	t.Run("ReturnsTokenFormatInvalidForEmptyToken", func(t *testing.T) {
-		_, err := generator.ValidateToken("")
+		_, err := generator.Validate("")
 		assert.Equal(t, ssp.ErrTokenFormatInvalid, err)
 	})
 
 	t.Run("ReturnsTokenFormatInvalidForRandomString", func(t *testing.T) {
-		_, err := generator.ValidateToken("someinvalidtoken")
+		_, err := generator.Validate("someinvalidtoken")
 		assert.Equal(t, ssp.ErrTokenFormatInvalid, err)
 	})
 }

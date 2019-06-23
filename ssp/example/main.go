@@ -8,9 +8,9 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
-	sqrl "github.com/RaniSputnik/sqrl-go"
 	"github.com/RaniSputnik/sqrl-go/ssp"
 )
 
@@ -24,19 +24,6 @@ const (
 )
 
 func main() {
-	// TODO: This builder is a bit gross
-	// Maybe we can move to using option functions
-	// like Gorilla Handlers?
-	// http://www.gorillatoolkit.org/pkg/handlers#CORSOption
-	config := sqrl.Configure(todoKey).
-		WithNutExpiry(time.Minute * 5).
-		WithRedirectURL("http://localhost:8080/callback").
-		// TODO: bit lame that this cli.sqrl is both hardcoded
-		// in ssp and configured here. Should we only provide
-		// the /sqrl part here? Or should cli.sqrl be moved out
-		// of ssp.Handler?
-		WithClientEndpoint("/sqrl/cli.sqrl")
-
 	serverToServerProtection := func(r *http.Request) error {
 		if r.Header.Get("X-Client-Secret") != clientSecret {
 			return errors.New("Invalid X-Client-Secret header")
@@ -44,12 +31,26 @@ func main() {
 		return nil
 	}
 
+	// TODO: This builder is a bit gross
+	// Maybe we can move to using option functions
+	// like Gorilla Handlers?
+	// http://www.gorillatoolkit.org/pkg/handlers#CORSOption
+	sspServer := ssp.Configure(todoKey, "http://localhost:8080/callback").
+		WithAuthentication(serverToServerProtection).
+		WithLogger(log.New(os.Stdout, "SSP: ", 0)).
+		WithNutExpiry(time.Minute * 5).
+		// TODO: bit lame that this cli.sqrl is both hardcoded
+		// in ssp and configured here. Should we only provide
+		// the /sqrl part here? Or should cli.sqrl be moved out
+		// of ssp.Handler?
+		WithClientEndpoint("/sqrl/cli.sqrl")
+
 	dir := "static"
 	fs := http.FileServer(http.Dir(dir))
 	http.Handle("/static/", http.StripPrefix("/static", fs))
 	// TODO: Don't strip the trailing slash here or else gorilla Mux will become confused
 	// and attempt to clean+rediect. Is this something that we should handle in library code?
-	http.Handle("/sqrl/", http.StripPrefix("/sqrl", ssp.Handler(config, serverToServerProtection)))
+	http.Handle("/sqrl/", http.StripPrefix("/sqrl", sspServer.Handler()))
 	http.Handle("/callback", authCallbackHandler("http://localhost:8080/sqrl/token"))
 	http.Handle("/logout", logoutHandler())
 	http.Handle("/", indexHandler())
