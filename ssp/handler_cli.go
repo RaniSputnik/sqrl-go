@@ -24,7 +24,7 @@ func serverError(response *sqrl.ServerMsg) {
 // TODO: This method is ridiculously large, we should be able to break it down
 // and move some of the functionality (particularly validation) to the core SQRL
 // package for folks who don't need a SSP server.
-func Authenticate(server *Server, store Store, tokens *TokenGenerator) http.Handler {
+func ClientHandler(server *Server, store Store, tokens *TokenGenerator) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		log.Printf("Got SQRL request: %v\n", r)

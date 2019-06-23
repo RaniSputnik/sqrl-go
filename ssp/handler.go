@@ -21,9 +21,9 @@ func Handler(s *Server, authFunc ServerToServerAuthValidationFunc) http.Handler 
 	tokens := NewTokenGenerator(s.key)
 
 	r := mux.NewRouter().StrictSlash(false)
-	r.HandleFunc("/nut.json", nutHandler(s, logger))
-	r.HandleFunc("/qr.png", qrHandler(s, logger))
-	r.Handle("/cli.sqrl", Authenticate(s, store, tokens))
+	r.HandleFunc("/nut.json", NutHandler(s, logger))
+	r.HandleFunc("/qr.png", QRCodeHandler(s, logger))
+	r.Handle("/cli.sqrl", ClientHandler(s, store, tokens))
 	r.Handle("/pag.sqrl", PagHandler(s, store))
 
 	protect := ServerToServerAuthMiddleware(authFunc, logger)
@@ -34,7 +34,7 @@ func Handler(s *Server, authFunc ServerToServerAuthValidationFunc) http.Handler 
 	return r
 }
 
-func nutHandler(server *Server, logger *log.Logger) http.HandlerFunc {
+func NutHandler(server *Server, logger *log.Logger) http.HandlerFunc {
 	type nutResponse struct {
 		Nut string `json:"nut"`
 	}
@@ -53,7 +53,7 @@ func nutHandler(server *Server, logger *log.Logger) http.HandlerFunc {
 	}
 }
 
-func qrHandler(server *Server, logger *log.Logger) http.HandlerFunc {
+func QRCodeHandler(server *Server, logger *log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := r.URL.Query()
 		nut := query.Get("nut")
