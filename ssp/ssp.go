@@ -18,30 +18,26 @@ type Server struct {
 	key []byte
 
 	logger         Logger
+	validator      ServerToServerAuthValidationFunc
 	redirectURL    string
 	clientEndpoint string
 
-	validator ServerToServerAuthValidationFunc
-
-	nutter *sqrl.Server
+	nutter *sqrl.Nutter
 }
 
 func Configure(key []byte, redirectURL string) *Server {
-	sqrlServer := sqrl.Configure(key)
+	nutter := sqrl.NewNutter(key)
 
 	return &Server{
 		key: key,
 
-		logger:         donothingLogger{},
+		logger: donothingLogger{},
+		// TODO: Is there a more sensible default we could use here?
+		validator:      noProtection,
 		redirectURL:    redirectURL,
 		clientEndpoint: "/cli.sqrl",
 
-		// TODO: Is there a more sensible default we could use here?
-		validator: noProtection,
-
-		// TODO: This should actually be named something
-		// more like "nut generator"
-		nutter: sqrlServer,
+		nutter: nutter,
 	}
 }
 
@@ -61,7 +57,7 @@ func (s *Server) WithAuthentication(validator ServerToServerAuthValidationFunc) 
 // WithNutExpiry sets the window of time within which
 // a nut is considered to be valid.
 func (s *Server) WithNutExpiry(d time.Duration) *Server {
-	s.nutter.WithNutExpiry(d)
+	s.nutter.Expiry = d
 	return s
 }
 
