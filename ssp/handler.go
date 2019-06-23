@@ -8,18 +8,17 @@ import (
 	"os"
 	"strconv"
 
-	sqrl "github.com/RaniSputnik/sqrl-go"
 	qrcode "github.com/skip2/go-qrcode"
 
 	"github.com/gorilla/mux"
 )
 
-func Handler(s *sqrl.Server, authFunc ServerToServerAuthValidationFunc) http.Handler {
+func Handler(s *Server, authFunc ServerToServerAuthValidationFunc) http.Handler {
 	// TODO: Make this configurable
 	logger := log.New(os.Stdout, "", 0)
 
 	store := NewMemoryStore()
-	tokens := NewTokenGenerator(s.Key())
+	tokens := NewTokenGenerator(s.key)
 
 	r := mux.NewRouter().StrictSlash(false)
 	r.HandleFunc("/nut.json", nutHandler(s, logger))
@@ -35,7 +34,7 @@ func Handler(s *sqrl.Server, authFunc ServerToServerAuthValidationFunc) http.Han
 	return r
 }
 
-func nutHandler(server *sqrl.Server, logger *log.Logger) http.HandlerFunc {
+func nutHandler(server *Server, logger *log.Logger) http.HandlerFunc {
 	type nutResponse struct {
 		Nut string `json:"nut"`
 	}
@@ -54,7 +53,7 @@ func nutHandler(server *sqrl.Server, logger *log.Logger) http.HandlerFunc {
 	}
 }
 
-func qrHandler(server *sqrl.Server, logger *log.Logger) http.HandlerFunc {
+func qrHandler(server *Server, logger *log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := r.URL.Query()
 		nut := query.Get("nut")
@@ -108,6 +107,6 @@ func requestDomain(r *http.Request) string {
 	return r.Host
 }
 
-func getTokenRedirectURL(server *sqrl.Server, token string) string {
-	return fmt.Sprintf("%s?token=%s", server.RedirectURL(), token)
+func getTokenRedirectURL(server *Server, token string) string {
+	return fmt.Sprintf("%s?token=%s", server.redirectURL, token)
 }

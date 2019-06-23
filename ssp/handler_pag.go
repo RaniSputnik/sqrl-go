@@ -7,7 +7,7 @@ import (
 	sqrl "github.com/RaniSputnik/sqrl-go"
 )
 
-func PagHandler(server *sqrl.Server, store Store) http.Handler {
+func PagHandler(server *Server, store Store) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		nut := r.URL.Query().Get("nut")
 

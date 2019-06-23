@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"time"
 
-	sqrl "github.com/RaniSputnik/sqrl-go"
 	"github.com/RaniSputnik/sqrl-go/ssp"
 )
 
@@ -28,9 +27,8 @@ func main() {
 	// Maybe we can move to using option functions
 	// like Gorilla Handlers?
 	// http://www.gorillatoolkit.org/pkg/handlers#CORSOption
-	config := sqrl.Configure(todoKey).
+	config := ssp.Configure(todoKey, "http://localhost:8080/callback").
 		WithNutExpiry(time.Minute * 5).
-		WithRedirectURL("http://localhost:8080/callback").
 		// TODO: bit lame that this cli.sqrl is both hardcoded
 		// in ssp and configured here. Should we only provide
 		// the /sqrl part here? Or should cli.sqrl be moved out

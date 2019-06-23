@@ -11,7 +11,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	sqrl "github.com/RaniSputnik/sqrl-go"
 	"github.com/RaniSputnik/sqrl-go/ssp"
 )
 
@@ -118,8 +117,8 @@ func fatal(t *testing.T, ok bool) {
 	}
 }
 
-func anyServer() *sqrl.Server {
-	return sqrl.Configure(make([]byte, 16))
+func anyServer() *ssp.Server {
+	return ssp.Configure(make([]byte, 16), "http://example.com/auth/callback")
 }
 
 func anyTokenGenerator() *ssp.TokenGenerator {
