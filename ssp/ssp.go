@@ -6,8 +6,18 @@ import (
 	sqrl "github.com/RaniSputnik/sqrl-go"
 )
 
+type Logger interface {
+	Printf(format string, v ...interface{})
+}
+
+type donothingLogger struct{}
+
+func (_ donothingLogger) Printf(format string, v ...interface{}) {}
+
 type Server struct {
-	key            []byte
+	key []byte
+
+	logger         Logger
 	redirectURL    string
 	clientEndpoint string
 
@@ -18,7 +28,9 @@ func Configure(key []byte, redirectURL string) *Server {
 	sqrlServer := sqrl.Configure(key)
 
 	return &Server{
-		key:            key,
+		key: key,
+
+		logger:         donothingLogger{},
 		redirectURL:    redirectURL,
 		clientEndpoint: "/cli.sqrl",
 
@@ -28,8 +40,12 @@ func Configure(key []byte, redirectURL string) *Server {
 	}
 }
 
-func (s *Server) Nut(clientIdentifier string) sqrl.Nut {
-	return s.nutter.Nut(clientIdentifier)
+func (s *Server) WithLogger(l Logger) *Server {
+	if l == nil {
+		l = donothingLogger{}
+	}
+	s.logger = l
+	return s
 }
 
 // WithNutExpiry sets the window of time within which
@@ -47,4 +63,8 @@ func (s *Server) WithNutExpiry(d time.Duration) *Server {
 func (s *Server) WithClientEndpoint(url string) *Server {
 	s.clientEndpoint = url
 	return s
+}
+
+func (s *Server) Nut(clientIdentifier string) sqrl.Nut {
+	return s.nutter.Nut(clientIdentifier)
 }

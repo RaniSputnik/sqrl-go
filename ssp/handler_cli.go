@@ -1,7 +1,6 @@
 package ssp
 
 import (
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -27,7 +26,7 @@ func serverError(response *sqrl.ServerMsg) {
 func (server *Server) ClientHandler(store Store, tokens *TokenGenerator) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		log.Printf("Got SQRL request: %v\n", r)
+		server.logger.Printf("Got SQRL request: %v\n", r)
 
 		response := genNextResponse(server, r)
 		defer writeResponse(w, response)
@@ -38,7 +37,7 @@ func (server *Server) ClientHandler(store Store, tokens *TokenGenerator) http.Ha
 		}
 
 		if err := r.ParseForm(); err != nil {
-			log.Printf("Failed to parse form: %s\n", err)
+			server.logger.Printf("Failed to parse form: %s\n", err)
 			clientFailure(response)
 			return
 		}
@@ -50,13 +49,13 @@ func (server *Server) ClientHandler(store Store, tokens *TokenGenerator) http.Ha
 
 		client, errc := sqrl.ParseClient(clientRaw)
 		if errc != nil {
-			log.Printf("Client param (%s) invalid: %v", clientRaw, errc)
+			server.logger.Printf("Client param (%s) invalid: %v", clientRaw, errc)
 			clientFailure(response)
 			return
 		}
 		nut, serverOK := verifyServer(serverRaw)
 		if !serverOK {
-			log.Printf("Server param (%s) invalid", serverRaw)
+			server.logger.Printf("Server param (%s) invalid", serverRaw)
 			clientFailure(response)
 			return
 		}
@@ -74,13 +73,13 @@ func (server *Server) ClientHandler(store Store, tokens *TokenGenerator) http.Ha
 			Next: response.Nut,
 		}
 		if err := store.SaveTransaction(ctx, thisTransaction); err != nil {
-			log.Printf("Failed to save transaction: %v\n", err)
+			server.logger.Printf("Failed to save transaction: %v\n", err)
 			serverError(response)
 			return
 		}
 		firstTransaction, err := store.GetFirstTransaction(ctx, nut)
 		if err != nil {
-			log.Printf("Failed to retrieve first transaction: %v\n", err)
+			server.logger.Printf("Failed to retrieve first transaction: %v\n", err)
 			serverError(response)
 			return
 		}
@@ -93,7 +92,7 @@ func (server *Server) ClientHandler(store Store, tokens *TokenGenerator) http.Ha
 		// TODO: Pass previous identities to "GetByIdentity"
 		currentUser, err := store.GetUserByIdentity(ctx, client.Idk)
 		if err != nil {
-			log.Printf("Failed to determine if identity is known: %v\n", err)
+			server.logger.Printf("Failed to determine if identity is known: %v\n", err)
 			serverError(response)
 			return
 		} else if currentUser != nil {
@@ -106,7 +105,7 @@ func (server *Server) ClientHandler(store Store, tokens *TokenGenerator) http.Ha
 			if currentUser == nil {
 				currentUser, err = store.CreateUser(ctx, client.Idk)
 				if err != nil {
-					log.Printf("Failed to create user: %v\n", err)
+					server.logger.Printf("Failed to create user: %v\n", err)
 					serverError(response)
 					return
 				}
@@ -119,7 +118,7 @@ func (server *Server) ClientHandler(store Store, tokens *TokenGenerator) http.Ha
 			// Record that this transaction was a success, store the token
 			err = store.SaveIdentSuccess(r.Context(), firstTransaction.Id, token)
 			if err != nil {
-				log.Fatalf("Failed to save ident success: %v\n", err)
+				server.logger.Printf("Failed to save ident success: %v\n", err)
 				serverError(response)
 				return
 			}

@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/RaniSputnik/sqrl-go/ssp"
@@ -28,6 +29,7 @@ func main() {
 	// like Gorilla Handlers?
 	// http://www.gorillatoolkit.org/pkg/handlers#CORSOption
 	sspServer := ssp.Configure(todoKey, "http://localhost:8080/callback").
+		WithLogger(log.New(os.Stdout, "SSP: ", 0)).
 		WithNutExpiry(time.Minute * 5).
 		// TODO: bit lame that this cli.sqrl is both hardcoded
 		// in ssp and configured here. Should we only provide
