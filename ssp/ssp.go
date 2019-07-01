@@ -17,6 +17,8 @@ func (_ donothingLogger) Printf(format string, v ...interface{}) {}
 type Server struct {
 	key []byte
 
+	store          Store
+	exchange       TokenExchange
 	logger         Logger
 	validator      ServerToServerAuthValidationFunc
 	redirectURL    string
@@ -26,12 +28,16 @@ type Server struct {
 }
 
 func Configure(key []byte, redirectURL string) *Server {
+	store := NewMemoryStore()
+	exchange := DefaultExchange(key, time.Minute)
 	nutter := sqrl.NewNutter(key)
 
 	return &Server{
 		key: key,
 
-		logger: donothingLogger{},
+		store:    store,
+		exchange: exchange,
+		logger:   donothingLogger{},
 		// TODO: Is there a more sensible default we could use here?
 		validator:      noProtection,
 		redirectURL:    redirectURL,
@@ -39,6 +45,16 @@ func Configure(key []byte, redirectURL string) *Server {
 
 		nutter: nutter,
 	}
+}
+
+func (s *Server) WithStore(store Store) *Server {
+	s.store = store
+	return s
+}
+
+func (s *Server) WithTokenExchange(exchange TokenExchange) *Server {
+	s.exchange = exchange
+	return s
 }
 
 func (s *Server) WithLogger(l Logger) *Server {

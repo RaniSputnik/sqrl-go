@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	qrcode "github.com/skip2/go-qrcode"
 
@@ -13,16 +12,13 @@ import (
 )
 
 func (s *Server) Handler() http.Handler {
-	store := NewMemoryStore()
-	tokens := DefaultExchange(s.key, time.Minute)
-
 	r := mux.NewRouter().StrictSlash(false)
 	r.HandleFunc("/nut.json", s.NutHandler())
 	r.HandleFunc("/qr.png", s.QRCodeHandler())
-	r.Handle("/cli.sqrl", s.ClientHandler(store, tokens))
-	r.Handle("/pag.sqrl", s.PagHandler(store))
+	r.Handle("/cli.sqrl", s.ClientHandler(s.store, s.exchange))
+	r.Handle("/pag.sqrl", s.PagHandler(s.store))
 
-	r.Handle("/token", s.TokenHandler(tokens)).Methods(http.MethodGet)
+	r.Handle("/token", s.TokenHandler(s.exchange)).Methods(http.MethodGet)
 	// r.Handle("/users", protect(AddUserHandler(userStore, logger))).Methods(http.MethodPost)
 	// r.Handle("/users", protecte(DeleteUserHandler(userStore, logger))).Methods(http.MethodDelete)
 
