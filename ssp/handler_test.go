@@ -1,11 +1,12 @@
 package ssp_test
 
 import (
-	"encoding/json"
 	"fmt"
 	"image/png"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -19,7 +20,7 @@ const validNut = "rNRqu8olcWLAPaDvsL4b6owTVfryjzbre3hWHWnNTrK_hIS_KgIDFt2eBDc"
 
 func TestHandlerNutIsReturned(t *testing.T) {
 	s := httptest.NewServer(anyServer().Handler())
-	res, err := http.Get(s.URL + "/nut.json")
+	res, err := http.Get(s.URL + "/nut.sqrl")
 
 	// Assert no errors
 	fatal(t, assert.NoError(t, err,
@@ -29,28 +30,30 @@ func TestHandlerNutIsReturned(t *testing.T) {
 	// Assert headers
 	assert.Equal(t, http.StatusOK, res.StatusCode,
 		"Expected successful status code")
-	assert.True(t, strings.HasPrefix("application/json", res.Header.Get("Content-Type")),
-		"Expected response to have Content-Type 'application/json'")
+	assert.True(t, strings.HasPrefix("application/x-www-form-urlencoded", res.Header.Get("Content-Type")),
+		"Expected response to have Content-Type 'application/x-www-form-urlencoded'")
 
-	// Assert response body
-	type nutRes struct {
-		Nut string `json:"nut"`
-	}
-	var got nutRes
-	err = json.NewDecoder(res.Body).Decode(&got)
-	fatal(t, assert.NoError(t, err,
-		"Expected body to be decoded as JSON successfully"))
-	assert.NotEmpty(t, got.Nut,
-		"Expected nut to be returned")
+	values, err := parseNutResponse(res)
+	fatal(t, assert.NoError(t, err, "Response error"))
+
+	_, hasNut := values["nut"]
+	assert.True(t, hasNut, "Missing nut parameter")
 }
 
+func parseNutResponse(res *http.Response) (url.Values, error) {
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed reading response body: %v", err)
+	}
+	values, err := url.ParseQuery(string(body))
+	if err != nil {
+		return nil, fmt.Errorf("failed parsing nut response body")
+	}
+	return values, nil
+}
 func TestHandlerNutIsUnique(t *testing.T) {
 	s := httptest.NewServer(anyServer().Handler())
-	endpoint := s.URL + "/nut.json"
-
-	type nutRes struct {
-		Nut string `json:"nut"`
-	}
+	endpoint := s.URL + "/nut.sqrl"
 
 	results := make(map[string]bool)
 
@@ -60,13 +63,12 @@ func TestHandlerNutIsUnique(t *testing.T) {
 			"Expected no HTTP/connection error"))
 		defer res.Body.Close()
 
-		var got nutRes
-		fatal(t, assert.NoError(t, json.NewDecoder(res.Body).Decode(&got),
-			"Expected body to be decoded as JSON successfully"))
+		values, err := parseNutResponse(res)
+		fatal(t, assert.NoError(t, err, "Expected body to be decoded successfully"))
 
-		seenBefore := results[got.Nut]
-		fatal(t, assert.False(t, seenBefore, "Duplicate nut returned: '%s'", got.Nut))
-		results[got.Nut] = true
+		seenBefore := results[values.Get("nut")]
+		fatal(t, assert.False(t, seenBefore, "Duplicate nut returned: '%s'", values.Get("nut")))
+		results[values.Get("nut")] = true
 	}
 }
 
