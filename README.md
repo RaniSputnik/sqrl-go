@@ -1,5 +1,7 @@
 # SQRL
 
+![Build status](https://travis-ci.org/RaniSputnik/sqrl-go.svg?branch=master)
+
 An implementation of the [SQRL protocol](https://www.grc.com/sqrl/sqrl.htm), 
 designed to be easy to integrate into a http server or SQRL client.
 
