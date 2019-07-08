@@ -12,6 +12,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// Handler returns a gorilla mux router including all of the
+// SQRL SSP API handlers
 func (s *Server) Handler() http.Handler {
 	r := mux.NewRouter().StrictSlash(false)
 	r.HandleFunc("/nut.sqrl", s.NutHandler)
@@ -26,39 +28,41 @@ func (s *Server) Handler() http.Handler {
 	return r
 }
 
-// Handler for the nut endpoint
+// NutHandler handler for the nut endpoint
 // Reference: https://www.grc.com/sqrl/sspapi.htm
 // TODO does not yet handle params 0-9, sin or ask
-func (server *Server) NutHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) NutHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/x-www-form-urlencoded")
 
-	nut := server.Nut(clientID(r))
-	server.logger.Printf("Generated nut: %s", nut)
+	nut := s.Nut(clientID(r))
+	s.logger.Printf("Generated nut: %s", nut)
 
 	formValues := make(url.Values)
 	formValues.Add("nut", string(nut))
 	formValues.Add("can", sqrl.Base64.EncodeToString([]byte(r.Header.Get("Referer"))))
 
 	if _, err := w.Write([]byte(formValues.Encode())); err != nil {
-		server.logger.Printf("Nut write unsuccessful: %v", err)
+		s.logger.Printf("Nut write unsuccessful: %v", err)
 	}
 }
 
-func (server *Server) QRCodeHandler(w http.ResponseWriter, r *http.Request) {
+// QRCodeHandler handles creating the QR code version
+// of the SQRL URL
+func (s *Server) QRCodeHandler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	nut := query.Get("nut")
 	size := atoiWithDefault(query.Get("size"), 256)
 
 	if nut == "" {
-		server.logger.Printf("QR code requested with empty 'nut' parameter")
+		s.logger.Printf("QR code requested with empty 'nut' parameter")
 		w.WriteHeader(http.StatusBadRequest) // TODO: default pending image
-		w.Write([]byte("Missing nut param"))
+		_, _ = w.Write([]byte("Missing nut param"))
 		return
 	}
 	if r.Host == "" {
-		server.logger.Printf("QR code requested with no 'Host' header set")
+		s.logger.Printf("QR code requested with no 'Host' header set")
 		w.WriteHeader(http.StatusBadRequest) // TODO: default error image
-		w.Write([]byte("Missing Host header"))
+		_, _ = w.Write([]byte("Missing Host header"))
 		return
 	}
 
@@ -72,7 +76,7 @@ func (server *Server) QRCodeHandler(w http.ResponseWriter, r *http.Request) {
 
 	bytes, err := qrcode.Encode(loginURL.String(), qrcode.Medium, size)
 	if err != nil {
-		server.logger.Printf("Failed to encode login URL '%s': %v", loginURL, err)
+		s.logger.Printf("Failed to encode login URL '%s': %v", loginURL, err)
 		w.WriteHeader(http.StatusNotFound) // TODO: default error image
 		return
 	}
@@ -80,7 +84,7 @@ func (server *Server) QRCodeHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "image/png")
 	w.WriteHeader(http.StatusOK)
 	if _, err := w.Write(bytes); err != nil {
-		server.logger.Printf("QR code write unsuccessful: %v", err)
+		s.logger.Printf("QR code write unsuccessful: %v", err)
 	}
 }
 
