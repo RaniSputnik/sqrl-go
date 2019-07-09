@@ -1,20 +1,23 @@
 package ssp
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 
+	sqrl "github.com/RaniSputnik/sqrl-go"
 	qrcode "github.com/skip2/go-qrcode"
 
 	"github.com/gorilla/mux"
 )
 
+// Handler returns a gorilla mux router including all of the
+// SQRL SSP API handlers
 func (s *Server) Handler() http.Handler {
 	r := mux.NewRouter().StrictSlash(false)
-	r.HandleFunc("/nut.json", s.NutHandler())
-	r.HandleFunc("/qr.png", s.QRCodeHandler())
+	r.HandleFunc("/nut.sqrl", s.NutHandler)
+	r.HandleFunc("/qr.png", s.QRCodeHandler)
 	r.Handle("/cli.sqrl", s.ClientHandler(s.store, s.exchange))
 	r.Handle("/pag.sqrl", s.PagHandler(s.store))
 
@@ -25,55 +28,63 @@ func (s *Server) Handler() http.Handler {
 	return r
 }
 
-func (server *Server) NutHandler() http.HandlerFunc {
-	type nutResponse struct {
-		Nut string `json:"nut"`
-	}
+// NutHandler handler for the nut endpoint
+// Reference: https://www.grc.com/sqrl/sspapi.htm
+// TODO does not yet handle params 0-9, sin or ask
+func (s *Server) NutHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/x-www-form-urlencoded")
 
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
+	nut := s.Nut(clientID(r))
+	s.logger.Printf("Generated nut: %s", nut)
 
-		res := nutResponse{
-			Nut: server.Nut(clientID(r)).String(),
-		}
-		server.logger.Printf("Generated nut: %s", res.Nut)
+	formValues := make(url.Values)
+	formValues.Add("nut", string(nut))
+	formValues.Add("can", sqrl.Base64.EncodeToString([]byte(r.Header.Get("Referer"))))
 
-		if err := json.NewEncoder(w).Encode(res); err != nil {
-			server.logger.Printf("Nut write unsuccessful: %v", err)
-		}
+	if _, err := w.Write([]byte(formValues.Encode())); err != nil {
+		s.logger.Printf("Nut write unsuccessful: %v", err)
 	}
 }
 
-func (server *Server) QRCodeHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		query := r.URL.Query()
-		nut := query.Get("nut")
-		size := atoiWithDefault(query.Get("size"), 256)
+// QRCodeHandler handles creating the QR code version
+// of the SQRL URL
+func (s *Server) QRCodeHandler(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	nut := query.Get("nut")
+	size := atoiWithDefault(query.Get("size"), 256)
 
-		if nut == "" {
-			server.logger.Printf("QR code requested with empty 'nut' parameter")
-			w.WriteHeader(http.StatusNotFound) // TODO: default pending image
-			return
-		}
-		if r.Host == "" {
-			server.logger.Printf("QR code requested with no 'Host' header set")
-			w.WriteHeader(http.StatusNotFound) // TODO: default error image
-			return
-		}
+	if nut == "" {
+		s.logger.Printf("QR code requested with empty 'nut' parameter")
+		w.WriteHeader(http.StatusBadRequest) // TODO: default pending image
+		_, _ = w.Write([]byte("Missing nut param"))
+		return
+	}
+	if r.Host == "" {
+		s.logger.Printf("QR code requested with no 'Host' header set")
+		w.WriteHeader(http.StatusBadRequest) // TODO: default error image
+		_, _ = w.Write([]byte("Missing Host header"))
+		return
+	}
 
-		loginURL := fmt.Sprintf("sqrl://%s/sqrl?nut=%s", requestDomain(r), nut)
-		bytes, err := qrcode.Encode(loginURL, qrcode.Medium, size)
-		if err != nil {
-			server.logger.Printf("Failed to encode login URL '%s': %v", loginURL, err)
-			w.WriteHeader(http.StatusNotFound) // TODO: default error image
-			return
-		}
+	params := make(url.Values)
+	params.Add("nut", nut)
+	loginURL := url.URL{
+		Scheme:   "sqrl",
+		Host:     requestDomain(r),
+		RawQuery: params.Encode(),
+	}
 
-		w.Header().Set("Content-Type", "image/png")
-		w.WriteHeader(http.StatusOK)
-		if _, err := w.Write(bytes); err != nil {
-			server.logger.Printf("QR code write unsuccessful: %v", err)
-		}
+	bytes, err := qrcode.Encode(loginURL.String(), qrcode.Medium, size)
+	if err != nil {
+		s.logger.Printf("Failed to encode login URL '%s': %v", loginURL, err)
+		w.WriteHeader(http.StatusNotFound) // TODO: default error image
+		return
+	}
+
+	w.Header().Set("Content-Type", "image/png")
+	w.WriteHeader(http.StatusOK)
+	if _, err := w.Write(bytes); err != nil {
+		s.logger.Printf("QR code write unsuccessful: %v", err)
 	}
 }
 
@@ -88,13 +99,13 @@ func atoiWithDefault(val string, def int) int {
 }
 
 func clientID(r *http.Request) string {
-	// TODO: X-Forwarded-For
-	// TODO: Include user agent if available
+	if forwardedAddress := r.Header.Get("X-Forwarded-For"); forwardedAddress != "" {
+		return forwardedAddress
+	}
 	return r.RemoteAddr
 }
 
 func requestDomain(r *http.Request) string {
-	// TODO: Do we need to do anything special here for proxies?
 	return r.Host
 }
 
