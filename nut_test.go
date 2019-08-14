@@ -33,6 +33,7 @@ func TestNut(t *testing.T) {
 				break
 			}
 			results[result] = struct{}{}
+			t.Logf("Got nut: %s", result)
 		}
 	})
 

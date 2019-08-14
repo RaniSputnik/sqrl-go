@@ -2,8 +2,6 @@ package sqrl
 
 import (
 	"bytes"
-	"crypto/aes"
-	"crypto/cipher"
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/binary"
@@ -11,6 +9,8 @@ import (
 	"io"
 	"sync/atomic"
 	"time"
+
+	"golang.org/x/crypto/blowfish"
 )
 
 // Nutter generates new nuts used to issue
@@ -21,7 +21,7 @@ type Nutter struct {
 	Expiry time.Duration
 
 	key    []byte
-	aesgcm cipher.AEAD
+	cipher *blowfish.Cipher
 }
 
 // NewNutter creates a Nut generator
@@ -29,29 +29,15 @@ type Nutter struct {
 // default nut expiry of 5 minutes.
 // TODO: Key rotation
 func NewNutter(key []byte) *Nutter {
-	aesgcm := genAesgcm(key)
+	cipher, err := blowfish.NewCipher(key)
+	if err != nil {
+		panic(err)
+	}
 	return &Nutter{
 		key:    key,
-		aesgcm: aesgcm,
+		cipher: cipher,
 		Expiry: time.Minute * 5,
 	}
-}
-
-func genAesgcm(key []byte) cipher.AEAD {
-	padKeyIfRequired(key)
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		panic(err.Error())
-	}
-	aesgcm, err := cipher.NewGCM(block)
-	if err != nil {
-		panic(err.Error())
-	}
-	return aesgcm
-}
-
-func padKeyIfRequired(key []byte) {
-	// TODO: Ensure key is either 16, 24 or 32 bits
 }
 
 // NoClientID is used to represent a nut that will not
@@ -75,65 +61,22 @@ func (n Nut) String() string {
 //
 // The Nut (think nonce) is guaranteed to be unique
 // and unpredictable to prevent replay attacks.
-//
-// clientIdentifier should at least include the IP address
-// of the client the Nut is being generated for, but could
-// include other intentification information such as User-Agent.
-//
-// It is important that clientIdentifier is created in a
-// deterministic way, as it must match the clientIdentifier
-// used during nut validation.
-//
-// Alternatively, NoClientID can be used to skip the client
-// identification check. This should only be used if client
-// identification is not possible.
 func (n *Nutter) Nut(clientIdentifier string) Nut {
-	//  32 bits: user's connection IP address if secured, 0.0.0.0 if non-secured.
-	//  32 bits: UNIX-time timestamp incrementing once per second.
-	//  32 bits: up-counter incremented once for every SQRL link generated.
-	//  31 bits: pseudo-random noise from system source.
-	//   1  bit: flag bit to indicate source: QRcode or URL click
-	// ---------
-	// 128 bits: AES encryption block size
+	nut := make([]byte, 8)
 
-	nut := make([]byte, 16)
-
-	//  32 bits: user's connection IP address if secured, 0.0.0.0 if non-secured.
-	ip := nutClientIDBytes(clientIdentifier)
-	nut[0] = ip[0]
-	nut[1] = ip[1]
-	nut[2] = ip[2]
-	nut[3] = ip[3]
-
-	// UNIX-time timestamp incrementing once per second.
-	t := uint32(time.Now().Unix())
-	nut[4] = byte(t >> 24)
-	nut[5] = byte(t >> 16)
-	nut[6] = byte(t >> 8)
-	nut[7] = byte(t)
-
-	//  32 bits: up-counter incremented once for every SQRL link generated.
 	// TODO combine this with a machine fingerprint
 	count := atomic.AddUint32(&nuts, 1)
-	nut[8] = byte(count >> 24)
-	nut[9] = byte(count >> 16)
-	nut[10] = byte(count >> 8)
-	nut[11] = byte(count)
+	binary.LittleEndian.PutUint32(nut, count)
 
-	//  31 bits: pseudo-random noise from system source.
 	noise := randBytes(4)
-	nut[12] = noise[0]
-	nut[13] = noise[1]
-	nut[14] = noise[2]
-	nut[15] = noise[3]
+	nut[4] = noise[0]
+	nut[5] = noise[1]
+	nut[6] = noise[2]
+	nut[7] = noise[3]
 
-	//   1  bit: flag bit to indicate source: QRcode or URL click
-	// TODO
-
-	nonce := randBytes(n.aesgcm.NonceSize())
-	encryptedNut := n.aesgcm.Seal(nil, nonce, nut, nil)
-	encryptedNutAndNonce := append(nonce, encryptedNut...)
-	return Nut(Base64.EncodeToString(encryptedNutAndNonce))
+	encryptedNut := make([]byte, 8)
+	n.cipher.Encrypt(encryptedNut, nut)
+	return Nut(Base64.EncodeToString(encryptedNut))
 }
 
 // Validate checks a nut returned by a client to ensure the nut
@@ -169,18 +112,18 @@ func (n *Nutter) Validate(returned Nut, clientIdentifier string) bool {
 }
 
 func (n *Nutter) decryptNut(encrypted Nut) ([]byte, error) {
-	decodedNutAndNonce, err := Base64.DecodeString(string(encrypted))
+	decodedNut, err := Base64.DecodeString(string(encrypted))
 	if err != nil {
 		return nil, err
 	}
-	nonceSize := n.aesgcm.NonceSize()
-	if len(decodedNutAndNonce) <= nonceSize {
+	if len(decodedNut) != 8 {
 		return nil, errors.New("invalid nut")
 	}
-	nonce := decodedNutAndNonce[:nonceSize]
-	encryptedNut := decodedNutAndNonce[nonceSize:]
 
-	return n.aesgcm.Open(nil, nonce, encryptedNut, nil)
+	decryptedNut := make([]byte, 8)
+	n.cipher.Decrypt(decryptedNut, decodedNut)
+	// TODO: Verify the decryption was successful?
+	return decodedNut, nil
 }
 
 func nutClientIDBytes(clientIdentifier string) []byte {
