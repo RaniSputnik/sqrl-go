@@ -1,11 +1,8 @@
 package sqrl
 
 import (
-	"bytes"
-	"crypto/md5"
 	"crypto/rand"
 	"encoding/binary"
-	"errors"
 	"io"
 	"sync/atomic"
 	"time"
@@ -40,12 +37,6 @@ func NewNutter(key []byte) *Nutter {
 	}
 }
 
-// NoClientID is used to represent a nut that will not
-// perform any client identification check when validated.
-const NoClientID = ""
-
-var noClientIDBytes = make([]byte, 4)
-
 var nuts uint32
 
 // Nut is a base64, encrypted nonce that contains
@@ -61,7 +52,7 @@ func (n Nut) String() string {
 //
 // The Nut (think nonce) is guaranteed to be unique
 // and unpredictable to prevent replay attacks.
-func (n *Nutter) Nut(clientIdentifier string) Nut {
+func (n *Nutter) Nut() Nut {
 	nut := make([]byte, 8)
 
 	// TODO combine this with a machine fingerprint
@@ -77,61 +68,6 @@ func (n *Nutter) Nut(clientIdentifier string) Nut {
 	encryptedNut := make([]byte, 8)
 	n.cipher.Encrypt(encryptedNut, nut)
 	return Nut(Base64.EncodeToString(encryptedNut))
-}
-
-// Validate checks a nut returned by a client to ensure the nut
-// is valid.
-//
-// The clients identifier (usually IP) is checked against the
-// identifier encrypted in the nut to ensure the nut has been
-// returned from the same machine it was originally sent to.
-//
-// Note: The client ID check will not be performed if the nut was
-// created with NoClientID.
-//
-// The nut's expiry is also checked, to ensure there hasn't been
-// a significant delay between nut issuing and nut return.
-func (n *Nutter) Validate(returned Nut, clientIdentifier string) bool {
-	decryptedNut, err := n.decryptNut(returned)
-	if err != nil || len(decryptedNut) != 16 {
-		return false // TODO: Do we need to expose this error?
-	}
-
-	originalIP := decryptedNut[:4]
-	shouldCheckIP := bytes.Equal(originalIP, noClientIDBytes)
-	if !shouldCheckIP {
-		ip := nutClientIDBytes(clientIdentifier)
-		if ipMatch := bytes.Equal(ip, originalIP); !ipMatch {
-			return false
-		}
-	}
-
-	timeSeconds := binary.BigEndian.Uint32(decryptedNut[4:8])
-	t := time.Unix(int64(timeSeconds), 0)
-	return time.Since(t) <= n.Expiry
-}
-
-func (n *Nutter) decryptNut(encrypted Nut) ([]byte, error) {
-	decodedNut, err := Base64.DecodeString(string(encrypted))
-	if err != nil {
-		return nil, err
-	}
-	if len(decodedNut) != 8 {
-		return nil, errors.New("invalid nut")
-	}
-
-	decryptedNut := make([]byte, 8)
-	n.cipher.Decrypt(decryptedNut, decodedNut)
-	// TODO: Verify the decryption was successful?
-	return decodedNut, nil
-}
-
-func nutClientIDBytes(clientIdentifier string) []byte {
-	if clientIdentifier == NoClientID {
-		return noClientIDBytes
-	}
-	hashedClientID := md5.Sum([]byte(clientIdentifier))
-	return hashedClientID[:4]
 }
 
 func randBytes(length int) []byte {

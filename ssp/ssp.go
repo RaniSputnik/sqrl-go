@@ -88,5 +88,5 @@ func (s *Server) WithClientEndpoint(url string) *Server {
 }
 
 func (s *Server) Nut(clientIdentifier string) sqrl.Nut {
-	return s.nutter.Nut(clientIdentifier)
+	return s.nutter.Nut()
 }
