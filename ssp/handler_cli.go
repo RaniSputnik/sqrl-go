@@ -137,7 +137,7 @@ func (server *Server) ClientHandler(store Store, tokens TokenGenerator) http.Han
 }
 
 func genNextResponse(server *Server, r *http.Request) *sqrl.ServerMsg {
-	nextNut := server.Nut(clientID(r))
+	nextNut := server.Nut()
 	return &sqrl.ServerMsg{
 		Ver: v1Only,
 		Nut: nextNut,

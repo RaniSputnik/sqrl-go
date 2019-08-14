@@ -34,7 +34,7 @@ func (s *Server) Handler() http.Handler {
 func (s *Server) NutHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/x-www-form-urlencoded")
 
-	nut := s.Nut(clientID(r))
+	nut := s.Nut()
 	s.logger.Printf("Generated nut: %s", nut)
 
 	formValues := make(url.Values)
@@ -96,13 +96,6 @@ func atoiWithDefault(val string, def int) int {
 	} else {
 		return res
 	}
-}
-
-func clientID(r *http.Request) string {
-	if forwardedAddress := r.Header.Get("X-Forwarded-For"); forwardedAddress != "" {
-		return forwardedAddress
-	}
-	return r.RemoteAddr
 }
 
 func requestDomain(r *http.Request) string {

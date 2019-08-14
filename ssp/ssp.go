@@ -70,13 +70,6 @@ func (s *Server) WithAuthentication(validator ServerToServerAuthValidationFunc) 
 	return s
 }
 
-// WithNutExpiry sets the window of time within which
-// a nut is considered to be valid.
-func (s *Server) WithNutExpiry(d time.Duration) *Server {
-	// TODO: Remove, now deprecated
-	return s
-}
-
 // WithClientEndpoint sets the endpoint that the client can
 // use to post SQRL transactions to. This endpoint should
 // be the path relative to the SQRL domain eg. /sqrl/cli.sqrl
@@ -87,6 +80,6 @@ func (s *Server) WithClientEndpoint(url string) *Server {
 	return s
 }
 
-func (s *Server) Nut(clientIdentifier string) sqrl.Nut {
+func (s *Server) Nut() sqrl.Nut {
 	return s.nutter.Next()
 }
