@@ -24,7 +24,7 @@ type Server struct {
 	redirectURL    string
 	clientEndpoint string
 
-	nutter *sqrl.Nutter
+	nutter sqrl.Nutter
 }
 
 func Configure(key []byte, redirectURL string) *Server {
@@ -73,7 +73,7 @@ func (s *Server) WithAuthentication(validator ServerToServerAuthValidationFunc) 
 // WithNutExpiry sets the window of time within which
 // a nut is considered to be valid.
 func (s *Server) WithNutExpiry(d time.Duration) *Server {
-	s.nutter.Expiry = d
+	// TODO: Remove, now deprecated
 	return s
 }
 
@@ -88,5 +88,5 @@ func (s *Server) WithClientEndpoint(url string) *Server {
 }
 
 func (s *Server) Nut(clientIdentifier string) sqrl.Nut {
-	return s.nutter.Nut()
+	return s.nutter.Next()
 }

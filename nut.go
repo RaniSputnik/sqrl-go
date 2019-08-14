@@ -5,39 +5,9 @@ import (
 	"encoding/binary"
 	"io"
 	"sync/atomic"
-	"time"
 
 	"golang.org/x/crypto/blowfish"
 )
-
-// Nutter generates new nuts used to issue
-// unique challenges to a SQRL client. It is
-// also used to validate nuts that were
-// previously issued.
-type Nutter struct {
-	Expiry time.Duration
-
-	key    []byte
-	cipher *blowfish.Cipher
-}
-
-// NewNutter creates a Nut generator
-// with the given encryption key and a
-// default nut expiry of 5 minutes.
-// TODO: Key rotation
-func NewNutter(key []byte) *Nutter {
-	cipher, err := blowfish.NewCipher(key)
-	if err != nil {
-		panic(err)
-	}
-	return &Nutter{
-		key:    key,
-		cipher: cipher,
-		Expiry: time.Minute * 5,
-	}
-}
-
-var nuts uint32
 
 // Nut is a base64, encrypted nonce that contains
 // metadata about the request that it was derived from.
@@ -47,16 +17,43 @@ func (n Nut) String() string {
 	return string(n)
 }
 
+// Nutter generates new nuts used to issue
+// unique challenges to a SQRL client. It is
+// also used to validate nuts that were
+// previously issued.
+type Nutter interface {
+	Next() Nut
+}
+
+type blowfishNutter struct {
+	cipher  *blowfish.Cipher
+	counter uint32
+}
+
+// NewNutter creates a Nut generator
+// with the given encryption key and a
+// default nut expiry of 5 minutes.
+// TODO: Key rotation
+func NewNutter(key []byte) Nutter {
+	cipher, err := blowfish.NewCipher(key)
+	if err != nil {
+		panic(err)
+	}
+	return &blowfishNutter{
+		cipher: cipher,
+	}
+}
+
 // Nut returns a challenge that should be returned to
 // SQRL client for signing.
 //
 // The Nut (think nonce) is guaranteed to be unique
 // and unpredictable to prevent replay attacks.
-func (n *Nutter) Nut() Nut {
+func (n *blowfishNutter) Next() Nut {
 	nut := make([]byte, 8)
 
 	// TODO combine this with a machine fingerprint
-	count := atomic.AddUint32(&nuts, 1)
+	count := atomic.AddUint32(&n.counter, 1)
 	binary.LittleEndian.PutUint32(nut, count)
 
 	noise := randBytes(4)
