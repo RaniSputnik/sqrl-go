@@ -27,11 +27,15 @@ type blowfishNutter struct {
 }
 
 // NewNutter creates a Nut generator
-// with the given encryption key and a
-// default nut expiry of 5 minutes.
-// TODO: Key rotation
-func NewNutter(key []byte) Nutter {
-	cipher, err := blowfish.NewCipher(key)
+func NewNutter() Nutter {
+	// We do not need to store the key here
+	// as we never verify the nuts encryption.
+	//
+	// We could in the future use a nutter that
+	// stored some information, allowing us to
+	// avoid unnecessary calls to the nut cache.
+	anyKey := randBytes(56)
+	cipher, err := blowfish.NewCipher(anyKey)
 	if err != nil {
 		panic(err)
 	}

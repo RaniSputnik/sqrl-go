@@ -9,8 +9,7 @@ import (
 )
 
 func TestNut(t *testing.T) {
-	anyKey := make([]byte, 16)
-	nutter := sqrl.NewNutter(anyKey)
+	nutter := sqrl.NewNutter()
 
 	t.Run("ReturnsANonEmptyValue", func(t *testing.T) {
 		result := nutter.Next()
@@ -26,7 +25,7 @@ func TestNut(t *testing.T) {
 	t.Run("DoesNotRepeatNuts", func(t *testing.T) {
 		results := map[sqrl.Nut]struct{}{}
 
-		for i := 0; i < 100; i++ {
+		for i := 0; i < 1000; i++ {
 			result := nutter.Next()
 			if !assert.NotContainsf(t, results, result, "Found duplicate nut: '%s'", result) {
 				break

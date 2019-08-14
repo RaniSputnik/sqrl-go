@@ -30,7 +30,7 @@ type Server struct {
 func Configure(key []byte, redirectURL string) *Server {
 	store := NewMemoryStore()
 	exchange := DefaultExchange(key, time.Minute)
-	nutter := sqrl.NewNutter(key)
+	nutter := sqrl.NewNutter()
 
 	return &Server{
 		key: key,
