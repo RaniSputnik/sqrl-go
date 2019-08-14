@@ -38,7 +38,6 @@ func main() {
 	sspServer := ssp.Configure(todoKey, "http://localhost:8080/callback").
 		WithAuthentication(serverToServerProtection).
 		WithLogger(log.New(os.Stdout, "SSP: ", 0)).
-		WithNutExpiry(time.Minute * 5).
 		// TODO: bit lame that this cli.sqrl is both hardcoded
 		// in ssp and configured here. Should we only provide
 		// the /sqrl part here? Or should cli.sqrl be moved out
