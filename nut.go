@@ -13,10 +13,6 @@ import (
 // metadata about the request that it was derived from.
 type Nut string
 
-func (n Nut) String() string {
-	return string(n)
-}
-
 // Nutter generates new nuts used to issue
 // unique challenges to a SQRL client. It is
 // also used to validate nuts that were
