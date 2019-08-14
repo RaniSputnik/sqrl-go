@@ -17,7 +17,7 @@ window.SQRL.inject = function(config) {
 
     var sqrlBaseUrl = config.api
     // TODO: Make these endpoints configurable
-    var nutEp = sqrlBaseUrl + '/nut.json'
+    var nutEp = sqrlBaseUrl + '/nut.sqrl'
     // TODO: This test for whether the endpoint is absolute is likely insufficient
     var sqrlEp = sqrlBaseUrl.indexOf('http') > -1 ? 
         sqrlBaseUrl.replace('https:', 'sqrl:') + '/cli.sqrl' :
@@ -35,8 +35,15 @@ window.SQRL.inject = function(config) {
         syncQuery2.onreadystatechange = function () {
             if (syncQuery2.readyState === 4) {
                 if (syncQuery2.status === 200) {
-                    var res = JSON.parse(syncQuery2.responseText);
-                    sqrlNut = res.nut;
+                    var parts = syncQuery2.responseText.split('&');
+                    var vals = {};
+                    for (var i = 0; i < parts.length; i++) {
+                        var keyval = parts[i].split('=', 2);
+                        if (keyval.length === 2) {
+                            vals[keyval[0]] = keyval[1]
+                        }
+                    }
+                    sqrlNut = vals['nut'];
                     if (x = document.getElementById("sqrl")) x.href = sqrlEp + '?nut=' + sqrlNut;
                     if (x = document.getElementById("qrimg")) x.src = qrEp + '?nut=' + sqrlNut;
                     pollForNextPage();	// start our next page checking

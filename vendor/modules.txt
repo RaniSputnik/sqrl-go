@@ -11,5 +11,6 @@ github.com/skip2/go-qrcode/reedsolomon
 # github.com/stretchr/testify v1.3.0
 github.com/stretchr/testify/assert
 # golang.org/x/crypto v0.0.0-20190404164418-38d8ce5564a5
+golang.org/x/crypto/blowfish
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/ed25519/internal/edwards25519
