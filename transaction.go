@@ -7,12 +7,20 @@ import (
 )
 
 var (
+	// ErrInvalidClient the 'client' parameter is invalid.
 	ErrInvalidClient = errors.New("invalid client param")
+	// ErrInvalidClient the 'server' parameter is invalid.
 	ErrInvalidServer = errors.New("invalid server param")
-	ErrInvalidIDSig  = errors.New("invalid identity signature")
-	ErrIPMismatch    = errors.New("ip does not match")
+	// ErrInvalidIDSig the identity signature parameter is not correct
+	// for the given identity key and payload.
+	ErrInvalidIDSig = errors.New("invalid identity signature")
+	// ErrIPMismatch the client IP address does not match the original
+	// transaction in the negotiation.
+	ErrIPMismatch = errors.New("ip does not match")
 )
 
+// Request represents a (usually HTTP) request sent from
+// a SQRL client to a SQRL server.
 type Request struct {
 	Nut    Nut
 	Client string
@@ -24,6 +32,13 @@ type Request struct {
 	ClientIP string
 }
 
+// Transaction represents a SQRL request and response, a single
+// exchange in a SQRL negotiation. There are likely to be multiple
+// transactions for a single SQRL sign-in.
+//
+// Next is the Nut that was issued to the client as part of this
+// transaction and should be resubmitted with the next request to
+// continue where the client and server left off.
 type Transaction struct {
 	Next Nut
 	*Request
