@@ -45,14 +45,16 @@ func (m *ServerMsg) Encode() (string, error) {
 
 // Set adds the given transaction information flag
 // to the server message.
-func (m *ServerMsg) Set(flag TIF) {
+func (m *ServerMsg) Set(flag TIF) *ServerMsg {
 	m.Tif |= flag
+	return m
 }
 
 // Unset removes the given transaction information
 // flag from the server message.
-func (m *ServerMsg) Unset(flag TIF) {
+func (m *ServerMsg) Unset(flag TIF) *ServerMsg {
 	m.Tif &^= flag
+	return m
 }
 
 // Is returns whether or not the server message

@@ -10,10 +10,10 @@ type TransactionStore interface {
 	// GetFirstTransaction returns the transaction that started an exchange between
 	// a SQRL client and SSP server. If no error or transaction is returned then
 	// the current transaction is the first transaction in the exchange.
-	GetFirstTransaction(ctx context.Context, nut sqrl.Nut) (*Transaction, error)
+	GetFirstTransaction(ctx context.Context, nut sqrl.Nut) (*sqrl.Transaction, error)
 
 	// SaveTransaction stores a verified transaction in the DB.
-	SaveTransaction(ctx context.Context, t *Transaction) error
+	SaveTransaction(ctx context.Context, t *sqrl.Transaction) error
 
 	// SaveIdentSuccess stores a successful ident query from a client. The token
 	// that will be returned to the client is stored to allow for retrieval
@@ -24,18 +24,6 @@ type TransactionStore interface {
 	// if such a token exists. An empty string will be returned if the given nut
 	// has not yet been saved as successful.
 	GetIdentSuccess(ctx context.Context, nut sqrl.Nut) (token Token, err error)
-
-	// Superceeded by UserStore.GetUserForToken
-	// GetIsKnown(ctx context.Context, id sqrl.Identity) (bool, error)
-}
-
-// TODO: Save this to the DB each time a new query is made
-// We can use this to tie nuts back to their OG id.
-type Transaction struct {
-	Id   sqrl.Nut
-	Next sqrl.Nut
-	// Client string
-	// Server string
 }
 
 type UserStore interface {

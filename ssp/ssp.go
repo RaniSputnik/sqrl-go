@@ -4,6 +4,7 @@ import (
 	"time"
 
 	sqrl "github.com/RaniSputnik/sqrl-go"
+	"github.com/tomasen/realip"
 )
 
 type Logger interface {
@@ -83,3 +84,9 @@ func (s *Server) WithClientEndpoint(url string) *Server {
 func (s *Server) Nut() sqrl.Nut {
 	return s.nutter.Next()
 }
+
+// ClientIP is the function that is used to extract the client ip string
+// from a given incomming http request. By default uses the FromRequest
+// method from github.com/tomasen/realip, extracting the IP from either
+// the X-Forwarded-For or X-Real-Ip headers, before falling back to remote addr.
+var ClientIP = realip.FromRequest

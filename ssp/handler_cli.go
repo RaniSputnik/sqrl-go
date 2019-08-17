@@ -1,9 +1,9 @@
 package ssp
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
-	"net/url"
-	"strings"
 
 	sqrl "github.com/RaniSputnik/sqrl-go"
 )
@@ -13,11 +13,11 @@ const xFormURLEncoded = "application/x-www-form-urlencoded"
 var v1Only = []string{sqrl.V1}
 
 func clientFailure(response *sqrl.ServerMsg) {
-	response.Tif = response.Tif | sqrl.TIFCommandFailed | sqrl.TIFClientFailure
+	response.Set(sqrl.TIFCommandFailed).Set(sqrl.TIFClientFailure)
 }
 
 func serverError(response *sqrl.ServerMsg) {
-	response.Tif |= sqrl.TIFCommandFailed
+	response.Set(sqrl.TIFCommandFailed).Set(sqrl.TIFTransientError)
 }
 
 // TODO: This method is ridiculously large, we should be able to break it down
@@ -31,63 +31,40 @@ func (server *Server) ClientHandler(store Store, tokens TokenGenerator) http.Han
 		response := genNextResponse(server, r)
 		defer writeResponse(w, response)
 
-		if r.Header.Get("Content-Type") != xFormURLEncoded {
+		req, err := parseRequest(r)
+		if err != nil {
+			server.logger.Printf("Client failure, %v'\n", err)
 			clientFailure(response)
 			return
 		}
 
-		if err := r.ParseForm(); err != nil {
-			server.logger.Printf("Failed to parse form: %s\n", err)
-			clientFailure(response)
-			return
-		}
-
-		clientRaw := r.Form.Get("client")
-		serverRaw := r.Form.Get("server")
-		ids := sqrl.Signature(r.Form.Get("ids"))
-		// TODO: pids
-
-		client, errc := sqrl.ParseClient(clientRaw)
-		if errc != nil {
-			server.logger.Printf("Client param (%s) invalid: %v", clientRaw, errc)
-			clientFailure(response)
-			return
-		}
-		nut, serverOK := verifyServer(serverRaw)
-		if !serverOK {
-			server.logger.Printf("Server param (%s) invalid", serverRaw)
-			clientFailure(response)
-			return
-		}
-		// TODO: Verify nut hasn't expired
-
-		signedPayload := clientRaw + serverRaw
-		if !ids.Verify(client.Idk, signedPayload) {
-			clientFailure(response)
-			return
-		}
-		// TODO: Verify previous identity signatures
-
-		thisTransaction := &Transaction{
-			Id:   nut,
-			Next: response.Nut,
-		}
-		if err := store.SaveTransaction(ctx, thisTransaction); err != nil {
-			server.logger.Printf("Failed to save transaction: %v\n", err)
-			serverError(response)
-			return
-		}
-		firstTransaction, err := store.GetFirstTransaction(ctx, nut)
+		firstTransaction, err := store.GetFirstTransaction(ctx, req.Nut)
 		if err != nil {
 			server.logger.Printf("Failed to retrieve first transaction: %v\n", err)
 			serverError(response)
 			return
 		}
-		if firstTransaction == nil {
-			firstTransaction = thisTransaction
+
+		// This is not ideal positioning for performance. Ideally
+		// we would _only_ GetFirstTransaction if the basic
+		// verify checks succeeded (ie. signatures valid etc.)
+		// but that would require breaking Verify up into multiple
+		// steps. Probably ok as the transaction store is likely to
+		// entirely stored in cache.
+		client, err := sqrl.Verify(req, firstTransaction, response)
+		if err != nil {
+			server.logger.Printf("Failed to verify transaction: %v", err)
+			return
 		}
 
-		// TODO: Test for IP Match
+		if err := store.SaveTransaction(ctx, &sqrl.Transaction{
+			Request: req,
+			Next:    response.Nut,
+		}); err != nil {
+			server.logger.Printf("Failed to save transaction: %v\n", err)
+			serverError(response)
+			return
+		}
 
 		// TODO: Pass previous identities to "GetByIdentity"
 		currentUser, err := store.GetUserByIdentity(ctx, client.Idk)
@@ -96,7 +73,7 @@ func (server *Server) ClientHandler(store Store, tokens TokenGenerator) http.Han
 			serverError(response)
 			return
 		} else if currentUser != nil {
-			response.Tif |= sqrl.TIFCurrentIDMatch
+			response.Set(sqrl.TIFCurrentIDMatch)
 		}
 
 		switch client.Cmd {
@@ -116,7 +93,11 @@ func (server *Server) ClientHandler(store Store, tokens TokenGenerator) http.Han
 			// for DB backends that want to specify the column size for the token
 			token := tokens.Token(currentUser.Id)
 			// Record that this transaction was a success, store the token
-			err = store.SaveIdentSuccess(r.Context(), firstTransaction.Id, token)
+			sessionID := req.Nut
+			if firstTransaction != nil {
+				sessionID = firstTransaction.Nut
+			}
+			err = store.SaveIdentSuccess(r.Context(), sessionID, token)
 			if err != nil {
 				server.logger.Printf("Failed to save ident success: %v\n", err)
 				serverError(response)
@@ -131,7 +112,7 @@ func (server *Server) ClientHandler(store Store, tokens TokenGenerator) http.Han
 
 		default:
 			// In all other cases, not supported
-			response.Tif |= sqrl.TIFFunctionNotSupported
+			response.Set(sqrl.TIFFunctionNotSupported)
 		}
 	})
 }
@@ -145,6 +126,34 @@ func genNextResponse(server *Server, r *http.Request) *sqrl.ServerMsg {
 	}
 }
 
+func parseRequest(r *http.Request) (*sqrl.Request, error) {
+	if contentType := r.Header.Get("Content-Type"); contentType != xFormURLEncoded {
+		return nil, fmt.Errorf("invalid content type: '%s'", contentType)
+	}
+
+	nut := sqrl.Nut(r.URL.Query().Get("nut"))
+	if nut == "" {
+		return nil, errors.New("missing required parameter: 'nut'")
+	}
+
+	if err := r.ParseForm(); err != nil {
+		return nil, err
+	}
+
+	clientRaw := r.Form.Get("client")
+	serverRaw := r.Form.Get("server")
+	ids := sqrl.Signature(r.Form.Get("ids"))
+	// TODO: pids
+
+	return &sqrl.Request{
+		Nut:      nut,
+		Client:   clientRaw,
+		Server:   serverRaw,
+		Ids:      ids,
+		ClientIP: ClientIP(r),
+	}, nil
+}
+
 func writeResponse(w http.ResponseWriter, response *sqrl.ServerMsg) {
 	encoded, err := response.Encode()
 	if err != nil {
@@ -156,41 +165,5 @@ func writeResponse(w http.ResponseWriter, response *sqrl.ServerMsg) {
 	w.Header().Set("Content-Type", xFormURLEncoded)
 	if _, err := w.Write([]byte(encoded)); err != nil {
 		panic(err) // TODO: What to do here?
-	}
-}
-
-func verifyServer(serverRaw string) (sqrl.Nut, bool) {
-	// TODO: Here we accept EITHER a URL or ServerMsg
-	// However we know that ONLY the first request
-	// from the client should be a URL.
-	// Is there a way for us to ensure that here?
-
-	bytes, err := sqrl.Base64.DecodeString(serverRaw)
-	if err != nil {
-		return "", false
-	}
-
-	server := string(bytes)
-	if strings.HasPrefix(server, "sqrl") {
-		serverURL, err := url.Parse(server)
-		if err != nil {
-			return "", false
-		}
-
-		// TODO: Assert URL matches server configuration
-		// eg. domain, "server friendly name", etc.
-
-		nut := serverURL.Query().Get("nut")
-		if nut == "" {
-			return "", false
-		}
-		return sqrl.Nut(nut), true
-
-	} else {
-		msg, err := sqrl.ParseServer(serverRaw)
-		if err != nil || msg == nil || msg.Nut == "" {
-			return "", false
-		}
-		return msg.Nut, true
 	}
 }
