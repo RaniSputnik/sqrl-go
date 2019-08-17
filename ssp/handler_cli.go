@@ -1,6 +1,8 @@
 package ssp
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 
 	sqrl "github.com/RaniSputnik/sqrl-go"
@@ -11,11 +13,11 @@ const xFormURLEncoded = "application/x-www-form-urlencoded"
 var v1Only = []string{sqrl.V1}
 
 func clientFailure(response *sqrl.ServerMsg) {
-	response.Tif = response.Tif | sqrl.TIFCommandFailed | sqrl.TIFClientFailure
+	response.Set(sqrl.TIFCommandFailed).Set(sqrl.TIFClientFailure)
 }
 
 func serverError(response *sqrl.ServerMsg) {
-	response.Tif |= sqrl.TIFCommandFailed
+	response.Set(sqrl.TIFCommandFailed).Set(sqrl.TIFTransientError)
 }
 
 // TODO: This method is ridiculously large, we should be able to break it down
@@ -29,53 +31,30 @@ func (server *Server) ClientHandler(store Store, tokens TokenGenerator) http.Han
 		response := genNextResponse(server, r)
 		defer writeResponse(w, response)
 
-		if r.Header.Get("Content-Type") != xFormURLEncoded {
+		req, err := parseRequest(r)
+		if err != nil {
+			server.logger.Printf("Client failure, %v'\n", err)
 			clientFailure(response)
 			return
 		}
 
-		nut := sqrl.Nut(r.URL.Query().Get("nut"))
-		if nut == "" {
-			server.logger.Printf("Missing required parameter: 'nut'\n")
-			clientFailure(response)
-			return
-		}
-
-		if err := r.ParseForm(); err != nil {
-			server.logger.Printf("Failed to parse form: %s\n", err)
-			clientFailure(response)
-			return
-		}
-
-		clientRaw := r.Form.Get("client")
-		serverRaw := r.Form.Get("server")
-		ids := sqrl.Signature(r.Form.Get("ids"))
-		// TODO: pids
-
-		thisTransaction := &sqrl.Transaction{
-			Request: &sqrl.Request{
-				Nut:      nut,
-				Client:   clientRaw,
-				Server:   serverRaw,
-				Ids:      ids,
-				ClientIP: ClientIP(r),
-			},
-			Next: response.Nut,
-		}
-		firstTransaction, err := store.GetFirstTransaction(ctx, nut)
+		firstTransaction, err := store.GetFirstTransaction(ctx, req.Nut)
 		if err != nil {
 			server.logger.Printf("Failed to retrieve first transaction: %v\n", err)
 			serverError(response)
 			return
 		}
 
-		client, err := sqrl.Verify(thisTransaction.Request, firstTransaction, response)
+		client, err := sqrl.Verify(req, firstTransaction, response)
 		if err != nil {
 			server.logger.Printf("Failed to verify transaction: %v", err)
 			return
 		}
 
-		if err := store.SaveTransaction(ctx, thisTransaction); err != nil {
+		if err := store.SaveTransaction(ctx, &sqrl.Transaction{
+			Request: req,
+			Next:    response.Nut,
+		}); err != nil {
 			server.logger.Printf("Failed to save transaction: %v\n", err)
 			serverError(response)
 			return
@@ -88,7 +67,7 @@ func (server *Server) ClientHandler(store Store, tokens TokenGenerator) http.Han
 			serverError(response)
 			return
 		} else if currentUser != nil {
-			response.Tif |= sqrl.TIFCurrentIDMatch
+			response.Set(sqrl.TIFCurrentIDMatch)
 		}
 
 		switch client.Cmd {
@@ -108,7 +87,7 @@ func (server *Server) ClientHandler(store Store, tokens TokenGenerator) http.Han
 			// for DB backends that want to specify the column size for the token
 			token := tokens.Token(currentUser.Id)
 			// Record that this transaction was a success, store the token
-			sessionID := thisTransaction.Nut
+			sessionID := req.Nut
 			if firstTransaction != nil {
 				sessionID = firstTransaction.Nut
 			}
@@ -127,7 +106,7 @@ func (server *Server) ClientHandler(store Store, tokens TokenGenerator) http.Han
 
 		default:
 			// In all other cases, not supported
-			response.Tif |= sqrl.TIFFunctionNotSupported
+			response.Set(sqrl.TIFFunctionNotSupported)
 		}
 	})
 }
@@ -139,6 +118,34 @@ func genNextResponse(server *Server, r *http.Request) *sqrl.ServerMsg {
 		Nut: nextNut,
 		Qry: server.clientEndpoint + "?nut=" + string(nextNut),
 	}
+}
+
+func parseRequest(r *http.Request) (*sqrl.Request, error) {
+	if contentType := r.Header.Get("Content-Type"); contentType != xFormURLEncoded {
+		return nil, fmt.Errorf("invalid content type: '%s'", contentType)
+	}
+
+	nut := sqrl.Nut(r.URL.Query().Get("nut"))
+	if nut == "" {
+		return nil, errors.New("missing required parameter: 'nut'")
+	}
+
+	if err := r.ParseForm(); err != nil {
+		return nil, err
+	}
+
+	clientRaw := r.Form.Get("client")
+	serverRaw := r.Form.Get("server")
+	ids := sqrl.Signature(r.Form.Get("ids"))
+	// TODO: pids
+
+	return &sqrl.Request{
+		Nut:      nut,
+		Client:   clientRaw,
+		Server:   serverRaw,
+		Ids:      ids,
+		ClientIP: ClientIP(r),
+	}, nil
 }
 
 func writeResponse(w http.ResponseWriter, response *sqrl.ServerMsg) {
