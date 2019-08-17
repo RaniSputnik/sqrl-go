@@ -10,6 +10,7 @@ var (
 	ErrInvalidClient = errors.New("invalid client param")
 	ErrInvalidServer = errors.New("invalid server param")
 	ErrInvalidIDSig  = errors.New("invalid identity signature")
+	ErrIPMismatch    = errors.New("ip does not match")
 )
 
 type Transaction struct {
@@ -21,6 +22,14 @@ type Transaction struct {
 	// TODO: Suk
 
 	ClientIP string
+
+	// TODO: Should we add response here?
+	// This way we'd be able to set the response
+	// on the current transaction during verification
+	// and compare the server parameter against the
+	// response on the previous transaction
+	//
+	// Reply *ServerMsg
 }
 
 // Verify checks that a transaction (request from a SQRL client) is valid
@@ -47,7 +56,14 @@ func Verify(t *Transaction, prev *Transaction, response *ServerMsg) (*ClientMsg,
 		return nil, ErrInvalidIDSig
 	}
 
-	// TODO: Verify IP Match
+	if prev == nil {
+		return client, nil
+	}
+
+	ipMustMatch := !client.HasOpt(OptNoIPTest)
+	if ipMustMatch && prev.ClientIP != t.ClientIP {
+		return nil, ErrIPMismatch
+	}
 
 	// TODO: Verify IDK Match
 
@@ -88,6 +104,9 @@ func verifyServer(serverRaw string, prev *Transaction) bool {
 		return true
 
 	} else {
+		// TODO: We must be able to do something smarter with this
+		// We should be able to check the previous server val we sent
+		// to the client and compare this against that.
 		msg, err := ParseServer(serverRaw)
 		if err != nil || msg == nil || msg.Nut == "" {
 			return false

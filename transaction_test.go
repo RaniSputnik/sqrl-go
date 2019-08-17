@@ -142,6 +142,65 @@ func TestVerifyWithPreviousTransaction(t *testing.T) {
 		assert.Equal(t, sqrl.ErrInvalidServer, err)
 	})
 
+	t.Run("FailsWhenClientIPDoesNotMatch", func(t *testing.T) {
+		prevTransaction := &sqrl.Transaction{
+			Client:   validClientQuery,
+			Server:   validServerQuery,
+			Ids:      signature(aliceSig, validClientQuery+validServerQuery),
+			ClientIP: "10.0.0.1",
+		}
+
+		transaction := &sqrl.Transaction{
+			Client:   validClientIdent,
+			Server:   validServerIdent,
+			Ids:      signature(aliceSig, validClientIdent+validServerIdent),
+			ClientIP: "10.0.0.2",
+		}
+
+		_, err := sqrl.Verify(transaction, prevTransaction, newResponse())
+		assert.Equal(t, sqrl.ErrIPMismatch, err)
+	})
+
+	t.Run("ReturnsNoErrorWhenClientIPDoesNotMatchButNoIPTestOptIsSet", func(t *testing.T) {
+		clientQuery := &sqrl.ClientMsg{
+			Ver: []string{sqrl.V1},
+			Cmd: sqrl.CmdQuery,
+			Idk: alice,
+			Opt: []sqrl.Opt{sqrl.OptNoIPTest},
+		}
+		clientIdent := &sqrl.ClientMsg{
+			Ver: []string{sqrl.V1},
+			Cmd: sqrl.CmdIdent,
+			Idk: alice,
+			Opt: []sqrl.Opt{sqrl.OptNoIPTest},
+		}
+		validClientQuery, _ := clientQuery.Encode()
+		validClientIdent, _ := clientIdent.Encode()
+
+		prevTransaction := &sqrl.Transaction{
+			Client:   validClientQuery,
+			Server:   validServerQuery,
+			Ids:      signature(aliceSig, validClientQuery+validServerQuery),
+			ClientIP: "10.0.0.1",
+		}
+
+		transaction := &sqrl.Transaction{
+			Client:   validClientIdent,
+			Server:   validServerIdent,
+			Ids:      signature(aliceSig, validClientIdent+validServerIdent),
+			ClientIP: "10.0.0.2",
+		}
+
+		gotClient, err := sqrl.Verify(transaction, prevTransaction, newResponse())
+		if assert.NoError(t, err) {
+			assert.Equal(t, *clientIdent, *gotClient)
+		}
+	})
+
+	// TODO: Return an error when the client Opt have changed between requests
+
+	// TODO: Return an error when the IDK have changed between requests
+
 	t.Run("ReturnsParsedClientForAValidRequest", func(t *testing.T) {
 		prevTransaction := &sqrl.Transaction{
 			Client:   validClientQuery,
@@ -158,8 +217,9 @@ func TestVerifyWithPreviousTransaction(t *testing.T) {
 		}
 
 		gotClient, err := sqrl.Verify(transaction, prevTransaction, newResponse())
-		assert.NoError(t, err)
-		assert.Equal(t, *clientIdent, *gotClient)
+		if assert.NoError(t, err) {
+			assert.Equal(t, *clientIdent, *gotClient)
+		}
 	})
 }
 
