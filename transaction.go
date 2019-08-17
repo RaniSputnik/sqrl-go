@@ -112,10 +112,7 @@ func verifyServer(serverRaw string, first *Transaction) bool {
 		// eg. domain, "server friendly name", etc.
 
 		nut := serverURL.Query().Get("nut")
-		if nut == "" {
-			return false
-		}
-		return true
+		return nut != ""
 
 	} else {
 		// TODO: We must be able to do something smarter with this

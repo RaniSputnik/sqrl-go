@@ -45,6 +45,12 @@ func (server *Server) ClientHandler(store Store, tokens TokenGenerator) http.Han
 			return
 		}
 
+		// This is not ideal positioning for performance. Ideally
+		// we would _only_ GetFirstTransaction if the basic
+		// verify checks succeeded (ie. signatures valid etc.)
+		// but that would require breaking Verify up into multiple
+		// steps. Probably ok as the transaction store is likely to
+		// entirely stored in cache.
 		client, err := sqrl.Verify(req, firstTransaction, response)
 		if err != nil {
 			server.logger.Printf("Failed to verify transaction: %v", err)
