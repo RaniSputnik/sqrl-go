@@ -11,9 +11,17 @@ func (server *Server) PagHandler(store TransactionStore) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		nut := r.URL.Query().Get("nut")
 
-		// TODO: Do not call the store with an invalid nut
+		firstTransaction, err := store.GetFirstTransaction(r.Context(), sqrl.Nut(nut))
+		if err != nil {
+			// TODO: handle err in some more clever way
+			panic(err)
+		}
 
-		// TODO: Check for an IP match (IP should ALWAYS match here)
+		log.Printf("Comparing transaction IP: %s, to client IP: %s", firstTransaction.ClientIP, ClientIP(r))
+		if firstTransaction == nil || firstTransaction.ClientIP != ClientIP(r) {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
 
 		token, err := store.GetIdentSuccess(r.Context(), sqrl.Nut(nut))
 		if err != nil {
