@@ -25,14 +25,15 @@ type Request struct {
 }
 
 type Transaction struct {
-	Reply *ServerMsg
+	Next Nut
 	*Request
 }
 
 // Verify checks that a request from a SQRL client is valid.
 //
-// A previous transaction should be provided if one exists. If no previous
-// transaction is provided, the request is presumed to be the first transaction.
+// The transaction that started this session should be provided if one exists.
+// If no previous transaction is provided, the request is presumed to be the
+// first request for this session.
 //
 // Note: No attempt is made to verify the previous transaction (other than
 // to compare it's properties to those of the new transaction). It is assumed
@@ -41,7 +42,7 @@ type Transaction struct {
 //
 // If a validation error is encoutered, the precise error will be returned and the
 // correct transaction information flags will be set on the response.
-func Verify(req *Request, prev *Transaction, response *ServerMsg) (*ClientMsg, error) {
+func Verify(req *Request, first *Transaction, response *ServerMsg) (*ClientMsg, error) {
 	if req.ClientIP == "" {
 		// ClientIP MUST always be set correctly for same-device protections
 		// to work correctly. We do not return an exported error here, because
@@ -56,7 +57,7 @@ func Verify(req *Request, prev *Transaction, response *ServerMsg) (*ClientMsg, e
 		response.Tif = response.Tif | TIFCommandFailed | TIFClientFailure
 		return nil, ErrInvalidClient
 	}
-	serverOK := verifyServer(req.Server, prev)
+	serverOK := verifyServer(req.Server, first)
 	if !serverOK {
 		response.Tif = response.Tif | TIFCommandFailed | TIFClientFailure
 		return nil, ErrInvalidServer
@@ -67,12 +68,12 @@ func Verify(req *Request, prev *Transaction, response *ServerMsg) (*ClientMsg, e
 		return nil, ErrInvalidIDSig
 	}
 
-	if prev == nil {
+	if first == nil {
 		return client, nil
 	}
 
 	// TODO: Do we set IP Match for the first request? Presume not
-	if prev.ClientIP == req.ClientIP {
+	if first.ClientIP == req.ClientIP {
 		response.Set(TIFIPMatch)
 	}
 	ipMustMatch := !client.HasOpt(OptNoIPTest)
@@ -88,12 +89,7 @@ func Verify(req *Request, prev *Transaction, response *ServerMsg) (*ClientMsg, e
 	return client, nil
 }
 
-func verifyServer(serverRaw string, prev *Transaction) bool {
-	// TODO: Here we accept EITHER a URL or ServerMsg
-	// However we know that ONLY the first request
-	// from the client should be a URL.
-	// Is there a way for us to ensure that here?
-
+func verifyServer(serverRaw string, first *Transaction) bool {
 	bytes, err := Base64.DecodeString(serverRaw)
 	if err != nil {
 		return false
@@ -101,7 +97,7 @@ func verifyServer(serverRaw string, prev *Transaction) bool {
 
 	server := string(bytes)
 	if strings.HasPrefix(server, "sqrl") {
-		if prev != nil {
+		if first != nil {
 			// Providing the previous query URL as the server
 			// param is ONLY valid for the first transaction
 			return false

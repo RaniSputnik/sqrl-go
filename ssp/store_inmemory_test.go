@@ -26,8 +26,14 @@ func TestMemoryStoreGetFirstTransaction(t *testing.T) {
 	t.Run("ReturnsNoTransactionIfExistsButIsFirstTransaction", func(t *testing.T) {
 		s := ssp.NewMemoryStore()
 		nut := sqrl.Nut("neverusedbefore")
-		_ = s.SaveTransaction(ctx, &ssp.Transaction{
-			Id:   nut,
+		_ = s.SaveTransaction(ctx, &sqrl.Transaction{
+			Request: &sqrl.Request{
+				Nut:      nut,
+				Client:   "some-client",
+				Server:   "some-server",
+				Ids:      "some-signature",
+				ClientIP: "10.0.0.1",
+			},
 			Next: sqrl.Nut("someothernut"),
 		})
 		transaction, _ := s.GetFirstTransaction(ctx, nut)
@@ -38,14 +44,20 @@ func TestMemoryStoreGetFirstTransaction(t *testing.T) {
 		s := ssp.NewMemoryStore()
 		firstNut := sqrl.Nut("neverusedbefore")
 		thisNut := sqrl.Nut("someothernut")
-		_ = s.SaveTransaction(ctx, &ssp.Transaction{
-			Id:   firstNut,
+		_ = s.SaveTransaction(ctx, &sqrl.Transaction{
+			Request: &sqrl.Request{
+				Nut:      firstNut,
+				Client:   "some-client",
+				Server:   "some-server",
+				Ids:      "some-signature",
+				ClientIP: "10.0.0.1",
+			},
 			Next: thisNut,
 		})
 
 		transaction, _ := s.GetFirstTransaction(ctx, thisNut)
 		if assert.NotNil(t, transaction) {
-			assert.Equal(t, firstNut, transaction.Id)
+			assert.Equal(t, firstNut, transaction.Nut)
 		}
 	})
 
@@ -54,22 +66,22 @@ func TestMemoryStoreGetFirstTransaction(t *testing.T) {
 		firstNut := sqrl.Nut("firstnut")
 		secondNut := sqrl.Nut("secondnut")
 		thirdNut := sqrl.Nut("thirdnut")
-		_ = s.SaveTransaction(ctx, &ssp.Transaction{
-			Id:   firstNut,
-			Next: secondNut,
+		_ = s.SaveTransaction(ctx, &sqrl.Transaction{
+			Request: &sqrl.Request{Nut: firstNut},
+			Next:    secondNut,
 		})
-		_ = s.SaveTransaction(ctx, &ssp.Transaction{
-			Id:   secondNut,
-			Next: thirdNut,
+		_ = s.SaveTransaction(ctx, &sqrl.Transaction{
+			Request: &sqrl.Request{Nut: secondNut},
+			Next:    thirdNut,
 		})
-		_ = s.SaveTransaction(ctx, &ssp.Transaction{
-			Id:   thirdNut,
-			Next: sqrl.Nut("someothernut"),
+		_ = s.SaveTransaction(ctx, &sqrl.Transaction{
+			Request: &sqrl.Request{Nut: thirdNut},
+			Next:    sqrl.Nut("someothernut"),
 		})
 
 		transaction, _ := s.GetFirstTransaction(ctx, thirdNut)
 		if assert.NotNil(t, transaction) {
-			assert.Equal(t, firstNut, transaction.Id)
+			assert.Equal(t, firstNut, transaction.Nut)
 		}
 	})
 }

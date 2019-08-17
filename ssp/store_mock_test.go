@@ -15,14 +15,14 @@ type mockStore struct {
 				Nut sqrl.Nut
 			}
 			Returns struct {
-				Transaction *ssp.Transaction
+				Transaction *sqrl.Transaction
 				Err         error
 			}
 		}
 		SaveTransaction struct {
 			CalledWith struct {
 				Ctx         context.Context
-				Transaction *ssp.Transaction
+				Transaction *sqrl.Transaction
 			}
 			Returns struct {
 				Err error
@@ -71,13 +71,13 @@ type mockStore struct {
 	}
 }
 
-func (m *mockStore) GetFirstTransaction(ctx context.Context, nut sqrl.Nut) (*ssp.Transaction, error) {
+func (m *mockStore) GetFirstTransaction(ctx context.Context, nut sqrl.Nut) (*sqrl.Transaction, error) {
 	m.Func.GetFirstTransaction.CalledWith.Ctx = ctx
 	m.Func.GetFirstTransaction.CalledWith.Nut = nut
 	return m.Func.GetFirstTransaction.Returns.Transaction, m.Func.GetFirstTransaction.Returns.Err
 }
 
-func (m *mockStore) SaveTransaction(ctx context.Context, t *ssp.Transaction) error {
+func (m *mockStore) SaveTransaction(ctx context.Context, t *sqrl.Transaction) error {
 	m.Func.SaveTransaction.CalledWith.Ctx = ctx
 	m.Func.SaveTransaction.CalledWith.Transaction = t
 	return m.Func.SaveTransaction.Returns.Err

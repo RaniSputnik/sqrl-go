@@ -52,9 +52,14 @@ func (server *Server) ClientHandler(store Store, tokens TokenGenerator) http.Han
 		ids := sqrl.Signature(r.Form.Get("ids"))
 		// TODO: pids
 
-		// TODO: Combine ssp.Transaction with sqrl.Transaction
-		thisTransaction := &Transaction{
-			Id:   nut,
+		thisTransaction := &sqrl.Transaction{
+			Request: &sqrl.Request{
+				Nut:      nut,
+				Client:   clientRaw,
+				Server:   serverRaw,
+				Ids:      ids,
+				ClientIP: ClientIP(r),
+			},
 			Next: response.Nut,
 		}
 		firstTransaction, err := store.GetFirstTransaction(ctx, nut)
@@ -63,17 +68,8 @@ func (server *Server) ClientHandler(store Store, tokens TokenGenerator) http.Han
 			serverError(response)
 			return
 		}
-		if firstTransaction == nil {
-			firstTransaction = thisTransaction
-		}
 
-		client, err := sqrl.Verify(&sqrl.Request{
-			Nut:      nut,
-			Client:   clientRaw,
-			Server:   serverRaw,
-			Ids:      ids,
-			ClientIP: ClientIP(r),
-		}, nil /* TODO: Prev transaction */, response)
+		client, err := sqrl.Verify(thisTransaction.Request, firstTransaction, response)
 		if err != nil {
 			server.logger.Printf("Failed to verify transaction: %v", err)
 			return
@@ -112,7 +108,11 @@ func (server *Server) ClientHandler(store Store, tokens TokenGenerator) http.Han
 			// for DB backends that want to specify the column size for the token
 			token := tokens.Token(currentUser.Id)
 			// Record that this transaction was a success, store the token
-			err = store.SaveIdentSuccess(r.Context(), firstTransaction.Id, token)
+			sessionID := thisTransaction.Nut
+			if firstTransaction != nil {
+				sessionID = firstTransaction.Nut
+			}
+			err = store.SaveIdentSuccess(r.Context(), sessionID, token)
 			if err != nil {
 				server.logger.Printf("Failed to save ident success: %v\n", err)
 				serverError(response)

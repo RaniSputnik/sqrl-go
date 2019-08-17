@@ -10,23 +10,27 @@ import (
 )
 
 type inmemoryStore struct {
-	transactions      map[sqrl.Nut]*Transaction
+	// Transaction Nut -> Transaction
+	transactions map[sqrl.Nut]*sqrl.Transaction
+	// Transaction Nut -> First Transaction Nut
 	firstTransactions map[sqrl.Nut]sqrl.Nut
-	tokens            map[sqrl.Nut]Token
-	users             []*User
+	// First Transaction Nut -> Auth Token
+	tokens map[sqrl.Nut]Token
+	// List of users
+	users []*User
 
 	sync.Mutex
 }
 
 func NewMemoryStore() Store {
 	return &inmemoryStore{
-		transactions:      map[sqrl.Nut]*Transaction{},
+		transactions:      map[sqrl.Nut]*sqrl.Transaction{},
 		firstTransactions: map[sqrl.Nut]sqrl.Nut{},
 		tokens:            map[sqrl.Nut]Token{},
 	}
 }
 
-func (s *inmemoryStore) GetFirstTransaction(ctx context.Context, nut sqrl.Nut) (*Transaction, error) {
+func (s *inmemoryStore) GetFirstTransaction(ctx context.Context, nut sqrl.Nut) (*sqrl.Transaction, error) {
 	s.Lock()
 	defer s.Unlock()
 	firstTransactionId, exists := s.firstTransactions[nut]
@@ -36,8 +40,8 @@ func (s *inmemoryStore) GetFirstTransaction(ctx context.Context, nut sqrl.Nut) (
 	return s.transactions[firstTransactionId], nil
 }
 
-func (s *inmemoryStore) SaveTransaction(ctx context.Context, t *Transaction) error {
-	firstTransaction, err := s.GetFirstTransaction(ctx, t.Id)
+func (s *inmemoryStore) SaveTransaction(ctx context.Context, t *sqrl.Transaction) error {
+	firstTransaction, err := s.GetFirstTransaction(ctx, t.Nut)
 	if err != nil {
 		return err
 	}
@@ -48,8 +52,8 @@ func (s *inmemoryStore) SaveTransaction(ctx context.Context, t *Transaction) err
 	s.Lock()
 	defer s.Unlock()
 
-	s.transactions[t.Id] = t
-	s.firstTransactions[t.Next] = firstTransaction.Id
+	s.transactions[t.Nut] = t
+	s.firstTransactions[t.Next] = firstTransaction.Nut
 	return nil
 }
 
