@@ -22,14 +22,6 @@ type Request struct {
 	// TODO: Suk
 
 	ClientIP string
-
-	// TODO: Should we add response here?
-	// This way we'd be able to set the response
-	// on the current transaction during verification
-	// and compare the server parameter against the
-	// response on the previous transaction
-	//
-	// Reply *ServerMsg
 }
 
 type Transaction struct {
@@ -50,6 +42,15 @@ type Transaction struct {
 // If a validation error is encoutered, the precise error will be returned and the
 // correct transaction information flags will be set on the response.
 func Verify(req *Request, prev *Transaction, response *ServerMsg) (*ClientMsg, error) {
+	if req.ClientIP == "" {
+		// ClientIP MUST always be set correctly for same-device protections
+		// to work correctly. We do not return an exported error here, because
+		// this is not an error that should ever be caught in practise. It is
+		// a development mistake and we check for it here to catch accidental
+		// misuse that may result in a security vulnerability.
+		return nil, errors.New("client ip should never be empty")
+	}
+
 	client, errc := ParseClient(req.Client)
 	if errc != nil {
 		response.Tif = response.Tif | TIFCommandFailed | TIFClientFailure
@@ -81,6 +82,8 @@ func Verify(req *Request, prev *Transaction, response *ServerMsg) (*ClientMsg, e
 	}
 
 	// TODO: Verify IDK Match
+
+	// TODO: Is cmd "ident" allowed if there is no previous transaction?
 
 	return client, nil
 }

@@ -25,6 +25,17 @@ func TestVerifyFirstTransaction(t *testing.T) {
 		return &sqrl.ServerMsg{ /* TODO */ }
 	}
 
+	t.Run("FailsWhenClientIPNotSet", func(t *testing.T) {
+		req := &sqrl.Request{
+			Client: validClient,
+			Server: validServer,
+			Ids:    validIds,
+		}
+
+		_, err := sqrl.Verify(req, nil, newResponse())
+		assert.Error(t, err)
+	})
+
 	t.Run("FailsWhenClientParamIsMissing", func(t *testing.T) {
 		req := &sqrl.Request{
 			Server:   validServer,

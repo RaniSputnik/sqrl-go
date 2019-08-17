@@ -68,11 +68,11 @@ func (server *Server) ClientHandler(store Store, tokens TokenGenerator) http.Han
 		}
 
 		client, err := sqrl.Verify(&sqrl.Request{
-			Nut:    nut,
-			Client: clientRaw,
-			Server: serverRaw,
-			Ids:    ids,
-			// TODO: ClientIP
+			Nut:      nut,
+			Client:   clientRaw,
+			Server:   serverRaw,
+			Ids:      ids,
+			ClientIP: ClientIP(r),
 		}, nil /* TODO: Prev transaction */, response)
 		if err != nil {
 			server.logger.Printf("Failed to verify transaction: %v", err)
