@@ -13,7 +13,7 @@ func TestVerifyFirstTransaction(t *testing.T) {
 
 	c := &sqrl.ClientMsg{
 		Ver: []string{sqrl.V1},
-		Cmd: sqrl.CmdIdent,
+		Cmd: sqrl.CmdQuery,
 		Idk: alice,
 		Opt: []sqrl.Opt{},
 	}
@@ -24,6 +24,31 @@ func TestVerifyFirstTransaction(t *testing.T) {
 	newResponse := func() *sqrl.ServerMsg {
 		return &sqrl.ServerMsg{ /* TODO */ }
 	}
+
+	t.Run("FailsWhenClientParamIsMissing", func(t *testing.T) {
+		transaction := &sqrl.Transaction{
+			Server:   validServer,
+			Ids:      validIds,
+			ClientIP: "10.0.0.1",
+		}
+
+		_, err := sqrl.Verify(transaction, nil, newResponse())
+		assert.Equal(t, sqrl.ErrInvalidClient, err)
+	})
+
+	t.Run("FailsWhenServerParamIsMissing", func(t *testing.T) {
+		transaction := &sqrl.Transaction{
+			Client:   validClient,
+			Ids:      validIds,
+			ClientIP: "10.0.0.1",
+		}
+
+		_, err := sqrl.Verify(transaction, nil, newResponse())
+		assert.Equal(t, sqrl.ErrInvalidServer, err)
+	})
+
+	// TODO: Do we fail when there's no previous transaction
+	// and the cmd is ident? Shouldn't there always be a query first?
 
 	t.Run("FailsWhenIDSInvalid", func(t *testing.T) {
 		transaction := &sqrl.Transaction{
@@ -63,6 +88,78 @@ func TestVerifyFirstTransaction(t *testing.T) {
 		gotClient, err := sqrl.Verify(transaction, nil, newResponse())
 		assert.NoError(t, err)
 		assert.Equal(t, *c, *gotClient)
+	})
+}
+
+func TestVerifyWithPreviousTransaction(t *testing.T) {
+	alice, aliceSig := newIDKey()
+
+	clientQuery := &sqrl.ClientMsg{
+		Ver: []string{sqrl.V1},
+		Cmd: sqrl.CmdQuery,
+		Idk: alice,
+		Opt: []sqrl.Opt{},
+	}
+	validClientQuery, _ := clientQuery.Encode()
+	validServerQuery := sqrl.Base64.EncodeToString([]byte("sqrl://example.com/sqrl?nut=firstnut"))
+
+	clientIdent := &sqrl.ClientMsg{
+		Ver: []string{sqrl.V1},
+		Cmd: sqrl.CmdIdent,
+		Idk: alice,
+		Opt: []sqrl.Opt{},
+	}
+	serverIdent := &sqrl.ServerMsg{
+		Ver: []string{sqrl.V1},
+		Nut: "secondnut",
+		Tif: 0,
+		Qry: "/sqrl?nut=secondnut",
+	}
+	validClientIdent, _ := clientIdent.Encode()
+	validServerIdent, _ := serverIdent.Encode()
+
+	newResponse := func() *sqrl.ServerMsg {
+		return &sqrl.ServerMsg{ /* TODO */ }
+	}
+
+	t.Run("FailsWhenPreviousTransactionExistsButServerIsFullURL", func(t *testing.T) {
+		prevTransaction := &sqrl.Transaction{
+			Client:   validClientQuery,
+			Server:   validServerQuery,
+			Ids:      signature(aliceSig, validClientQuery+validServerQuery),
+			ClientIP: "10.0.0.1",
+		}
+
+		reusedServerParam := validServerQuery
+		transaction := &sqrl.Transaction{
+			Client:   validClientIdent,
+			Server:   reusedServerParam,
+			Ids:      signature(aliceSig, validClientIdent+reusedServerParam),
+			ClientIP: "10.0.0.1",
+		}
+
+		_, err := sqrl.Verify(transaction, prevTransaction, newResponse())
+		assert.Equal(t, sqrl.ErrInvalidServer, err)
+	})
+
+	t.Run("ReturnsParsedClientForAValidRequest", func(t *testing.T) {
+		prevTransaction := &sqrl.Transaction{
+			Client:   validClientQuery,
+			Server:   validServerQuery,
+			Ids:      signature(aliceSig, validClientQuery+validServerQuery),
+			ClientIP: "10.0.0.1",
+		}
+
+		transaction := &sqrl.Transaction{
+			Client:   validClientIdent,
+			Server:   validServerIdent,
+			Ids:      signature(aliceSig, validClientIdent+validServerIdent),
+			ClientIP: "10.0.0.1",
+		}
+
+		gotClient, err := sqrl.Verify(transaction, prevTransaction, newResponse())
+		assert.NoError(t, err)
+		assert.Equal(t, *clientIdent, *gotClient)
 	})
 }
 

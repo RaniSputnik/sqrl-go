@@ -7,7 +7,9 @@ import (
 )
 
 var (
-	ErrInvalidIDSig = errors.New("invalid identity signature")
+	ErrInvalidClient = errors.New("invalid client param")
+	ErrInvalidServer = errors.New("invalid server param")
+	ErrInvalidIDSig  = errors.New("invalid identity signature")
 )
 
 type Transaction struct {
@@ -32,12 +34,12 @@ func Verify(t *Transaction, prev *Transaction, response *ServerMsg) (*ClientMsg,
 	client, errc := ParseClient(t.Client)
 	if errc != nil {
 		response.Tif = response.Tif | TIFCommandFailed | TIFClientFailure
-		return nil, errors.New("invalid client param")
+		return nil, ErrInvalidClient
 	}
 	serverOK := verifyServer(t.Server, prev)
 	if !serverOK {
 		response.Tif = response.Tif | TIFCommandFailed | TIFClientFailure
-		return nil, errors.New("invalid server param")
+		return nil, ErrInvalidServer
 	}
 	signedPayload := t.Client + t.Server
 	if !t.Ids.Verify(client.Idk, signedPayload) {
@@ -65,6 +67,12 @@ func verifyServer(serverRaw string, prev *Transaction) bool {
 
 	server := string(bytes)
 	if strings.HasPrefix(server, "sqrl") {
+		if prev != nil {
+			// Providing the previous query URL as the server
+			// param is ONLY valid for the first transaction
+			return false
+		}
+
 		serverURL, err := url.Parse(server)
 		if err != nil {
 			return false
