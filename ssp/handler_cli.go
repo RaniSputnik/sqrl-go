@@ -67,7 +67,7 @@ func (server *Server) ClientHandler(store Store, tokens TokenGenerator) http.Han
 			firstTransaction = thisTransaction
 		}
 
-		client, err := sqrl.Verify(&sqrl.Transaction{
+		client, err := sqrl.Verify(&sqrl.Request{
 			Nut:    nut,
 			Client: clientRaw,
 			Server: serverRaw,

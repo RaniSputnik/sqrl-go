@@ -13,7 +13,7 @@ var (
 	ErrIPMismatch    = errors.New("ip does not match")
 )
 
-type Transaction struct {
+type Request struct {
 	Nut    Nut
 	Client string
 	Server string
@@ -32,26 +32,36 @@ type Transaction struct {
 	// Reply *ServerMsg
 }
 
-// Verify checks that a transaction (request from a SQRL client) is valid
+type Transaction struct {
+	Reply *ServerMsg
+	*Request
+}
+
+// Verify checks that a request from a SQRL client is valid.
 //
 // A previous transaction should be provided if one exists. If no previous
 // transaction is provided, the request is presumed to be the first transaction.
 //
-// If an error is encoutered, the precise error will be returned and the
+// Note: No attempt is made to verify the previous transaction (other than
+// to compare it's properties to those of the new transaction). It is assumed
+// that the previous transaction has already had it's signatures checked and
+// payload validated.
+//
+// If a validation error is encoutered, the precise error will be returned and the
 // correct transaction information flags will be set on the response.
-func Verify(t *Transaction, prev *Transaction, response *ServerMsg) (*ClientMsg, error) {
-	client, errc := ParseClient(t.Client)
+func Verify(req *Request, prev *Transaction, response *ServerMsg) (*ClientMsg, error) {
+	client, errc := ParseClient(req.Client)
 	if errc != nil {
 		response.Tif = response.Tif | TIFCommandFailed | TIFClientFailure
 		return nil, ErrInvalidClient
 	}
-	serverOK := verifyServer(t.Server, prev)
+	serverOK := verifyServer(req.Server, prev)
 	if !serverOK {
 		response.Tif = response.Tif | TIFCommandFailed | TIFClientFailure
 		return nil, ErrInvalidServer
 	}
-	signedPayload := t.Client + t.Server
-	if !t.Ids.Verify(client.Idk, signedPayload) {
+	signedPayload := req.Client + req.Server
+	if !req.Ids.Verify(client.Idk, signedPayload) {
 		response.Tif = response.Tif | TIFCommandFailed | TIFClientFailure
 		return nil, ErrInvalidIDSig
 	}
@@ -60,8 +70,13 @@ func Verify(t *Transaction, prev *Transaction, response *ServerMsg) (*ClientMsg,
 		return client, nil
 	}
 
+	// TODO: Do we set IP Match for the first request? Presume not
+	if prev.ClientIP == req.ClientIP {
+		response.Set(TIFIPMatch)
+	}
 	ipMustMatch := !client.HasOpt(OptNoIPTest)
-	if ipMustMatch && prev.ClientIP != t.ClientIP {
+	ipsMatch := response.Is(TIFIPMatch)
+	if ipMustMatch && !ipsMatch {
 		return nil, ErrIPMismatch
 	}
 

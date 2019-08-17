@@ -26,24 +26,24 @@ func TestVerifyFirstTransaction(t *testing.T) {
 	}
 
 	t.Run("FailsWhenClientParamIsMissing", func(t *testing.T) {
-		transaction := &sqrl.Transaction{
+		req := &sqrl.Request{
 			Server:   validServer,
 			Ids:      validIds,
 			ClientIP: "10.0.0.1",
 		}
 
-		_, err := sqrl.Verify(transaction, nil, newResponse())
+		_, err := sqrl.Verify(req, nil, newResponse())
 		assert.Equal(t, sqrl.ErrInvalidClient, err)
 	})
 
 	t.Run("FailsWhenServerParamIsMissing", func(t *testing.T) {
-		transaction := &sqrl.Transaction{
+		req := &sqrl.Request{
 			Client:   validClient,
 			Ids:      validIds,
 			ClientIP: "10.0.0.1",
 		}
 
-		_, err := sqrl.Verify(transaction, nil, newResponse())
+		_, err := sqrl.Verify(req, nil, newResponse())
 		assert.Equal(t, sqrl.ErrInvalidServer, err)
 	})
 
@@ -51,14 +51,14 @@ func TestVerifyFirstTransaction(t *testing.T) {
 	// and the cmd is ident? Shouldn't there always be a query first?
 
 	t.Run("FailsWhenIDSInvalid", func(t *testing.T) {
-		transaction := &sqrl.Transaction{
+		req := &sqrl.Request{
 			Client:   validClient,
 			Server:   validServer,
 			Ids:      "invalid-sig",
 			ClientIP: "10.0.0.1",
 		}
 
-		_, err := sqrl.Verify(transaction, nil, newResponse())
+		_, err := sqrl.Verify(req, nil, newResponse())
 		assert.Equal(t, sqrl.ErrInvalidIDSig, err)
 	})
 
@@ -66,26 +66,26 @@ func TestVerifyFirstTransaction(t *testing.T) {
 		wrongPayload := validClient + "-" + validServer
 		invalidIds := signature(aliceSig, wrongPayload)
 
-		transaction := &sqrl.Transaction{
+		req := &sqrl.Request{
 			Client:   validClient,
 			Server:   validServer,
 			Ids:      invalidIds,
 			ClientIP: "10.0.0.1",
 		}
 
-		_, err := sqrl.Verify(transaction, nil, newResponse())
+		_, err := sqrl.Verify(req, nil, newResponse())
 		assert.Equal(t, sqrl.ErrInvalidIDSig, err)
 	})
 
 	t.Run("ReturnsParsedClientForAValidRequest", func(t *testing.T) {
-		transaction := &sqrl.Transaction{
+		req := &sqrl.Request{
 			Client:   validClient,
 			Server:   validServer,
 			Ids:      validIds,
 			ClientIP: "10.0.0.1",
 		}
 
-		gotClient, err := sqrl.Verify(transaction, nil, newResponse())
+		gotClient, err := sqrl.Verify(req, nil, newResponse())
 		assert.NoError(t, err)
 		assert.Equal(t, *c, *gotClient)
 	})
@@ -123,41 +123,43 @@ func TestVerifyWithPreviousTransaction(t *testing.T) {
 	}
 
 	t.Run("FailsWhenPreviousTransactionExistsButServerIsFullURL", func(t *testing.T) {
-		prevTransaction := &sqrl.Transaction{
+		prevRequest := &sqrl.Request{
 			Client:   validClientQuery,
 			Server:   validServerQuery,
 			Ids:      signature(aliceSig, validClientQuery+validServerQuery),
 			ClientIP: "10.0.0.1",
 		}
+		prevTransaction := &sqrl.Transaction{ /*TODO: Reply */ Request: prevRequest}
 
 		reusedServerParam := validServerQuery
-		transaction := &sqrl.Transaction{
+		req := &sqrl.Request{
 			Client:   validClientIdent,
 			Server:   reusedServerParam,
 			Ids:      signature(aliceSig, validClientIdent+reusedServerParam),
 			ClientIP: "10.0.0.1",
 		}
 
-		_, err := sqrl.Verify(transaction, prevTransaction, newResponse())
+		_, err := sqrl.Verify(req, prevTransaction, newResponse())
 		assert.Equal(t, sqrl.ErrInvalidServer, err)
 	})
 
 	t.Run("FailsWhenClientIPDoesNotMatch", func(t *testing.T) {
-		prevTransaction := &sqrl.Transaction{
+		prevRequest := &sqrl.Request{
 			Client:   validClientQuery,
 			Server:   validServerQuery,
 			Ids:      signature(aliceSig, validClientQuery+validServerQuery),
 			ClientIP: "10.0.0.1",
 		}
+		prevTransaction := &sqrl.Transaction{ /*TODO: Reply */ Request: prevRequest}
 
-		transaction := &sqrl.Transaction{
+		req := &sqrl.Request{
 			Client:   validClientIdent,
 			Server:   validServerIdent,
 			Ids:      signature(aliceSig, validClientIdent+validServerIdent),
 			ClientIP: "10.0.0.2",
 		}
 
-		_, err := sqrl.Verify(transaction, prevTransaction, newResponse())
+		_, err := sqrl.Verify(req, prevTransaction, newResponse())
 		assert.Equal(t, sqrl.ErrIPMismatch, err)
 	})
 
@@ -177,24 +179,57 @@ func TestVerifyWithPreviousTransaction(t *testing.T) {
 		validClientQuery, _ := clientQuery.Encode()
 		validClientIdent, _ := clientIdent.Encode()
 
-		prevTransaction := &sqrl.Transaction{
+		prevRequest := &sqrl.Request{
 			Client:   validClientQuery,
 			Server:   validServerQuery,
 			Ids:      signature(aliceSig, validClientQuery+validServerQuery),
 			ClientIP: "10.0.0.1",
 		}
+		prevTransaction := &sqrl.Transaction{ /*TODO: Reply */ Request: prevRequest}
 
-		transaction := &sqrl.Transaction{
+		req := &sqrl.Request{
 			Client:   validClientIdent,
 			Server:   validServerIdent,
 			Ids:      signature(aliceSig, validClientIdent+validServerIdent),
 			ClientIP: "10.0.0.2",
 		}
 
-		gotClient, err := sqrl.Verify(transaction, prevTransaction, newResponse())
+		gotClient, err := sqrl.Verify(req, prevTransaction, newResponse())
 		if assert.NoError(t, err) {
 			assert.Equal(t, *clientIdent, *gotClient)
 		}
+	})
+
+	t.Run("SetsTheIPMatchTIFlags", func(t *testing.T) {
+		prevRequest := &sqrl.Request{
+			Client:   validClientQuery,
+			Server:   validServerQuery,
+			Ids:      signature(aliceSig, validClientQuery+validServerQuery),
+			ClientIP: "10.0.0.1",
+		}
+		prevTransaction := &sqrl.Transaction{ /*TODO: Reply */ Request: prevRequest}
+
+		match := &sqrl.Request{
+			Client:   validClientIdent,
+			Server:   validServerIdent,
+			Ids:      signature(aliceSig, validClientIdent+validServerIdent),
+			ClientIP: "10.0.0.1",
+		}
+
+		nonMatch := &sqrl.Request{
+			Client:   validClientIdent,
+			Server:   validServerIdent,
+			Ids:      signature(aliceSig, validClientIdent+validServerIdent),
+			ClientIP: "10.0.0.2",
+		}
+
+		resMatch := newResponse()
+		_, _ = sqrl.Verify(match, prevTransaction, resMatch)
+		assert.True(t, resMatch.Is(sqrl.TIFIPMatch), "IP Match should be set")
+
+		resNonMatch := newResponse()
+		_, _ = sqrl.Verify(nonMatch, prevTransaction, resNonMatch)
+		assert.False(t, resNonMatch.Is(sqrl.TIFIPMatch), "IP Match should not be set")
 	})
 
 	// TODO: Return an error when the client Opt have changed between requests
@@ -202,21 +237,22 @@ func TestVerifyWithPreviousTransaction(t *testing.T) {
 	// TODO: Return an error when the IDK have changed between requests
 
 	t.Run("ReturnsParsedClientForAValidRequest", func(t *testing.T) {
-		prevTransaction := &sqrl.Transaction{
+		prevRequest := &sqrl.Request{
 			Client:   validClientQuery,
 			Server:   validServerQuery,
 			Ids:      signature(aliceSig, validClientQuery+validServerQuery),
 			ClientIP: "10.0.0.1",
 		}
+		prevTransaction := &sqrl.Transaction{ /*TODO: Reply */ Request: prevRequest}
 
-		transaction := &sqrl.Transaction{
+		req := &sqrl.Request{
 			Client:   validClientIdent,
 			Server:   validServerIdent,
 			Ids:      signature(aliceSig, validClientIdent+validServerIdent),
 			ClientIP: "10.0.0.1",
 		}
 
-		gotClient, err := sqrl.Verify(transaction, prevTransaction, newResponse())
+		gotClient, err := sqrl.Verify(req, prevTransaction, newResponse())
 		if assert.NoError(t, err) {
 			assert.Equal(t, *clientIdent, *gotClient)
 		}
