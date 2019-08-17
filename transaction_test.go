@@ -15,6 +15,7 @@ func TestVerifyFirstTransaction(t *testing.T) {
 		Ver: []string{sqrl.V1},
 		Cmd: sqrl.CmdIdent,
 		Idk: alice,
+		Opt: []sqrl.Opt{},
 	}
 	validClient, _ := c.Encode()
 	validServer := sqrl.Base64.EncodeToString([]byte("sqrl://example.com/sqrl?nut=123456789"))
@@ -32,7 +33,7 @@ func TestVerifyFirstTransaction(t *testing.T) {
 			ClientIP: "10.0.0.1",
 		}
 
-		err := sqrl.Verify(transaction, nil, newResponse())
+		_, err := sqrl.Verify(transaction, nil, newResponse())
 		assert.Equal(t, sqrl.ErrInvalidIDSig, err)
 	})
 
@@ -47,11 +48,11 @@ func TestVerifyFirstTransaction(t *testing.T) {
 			ClientIP: "10.0.0.1",
 		}
 
-		err := sqrl.Verify(transaction, nil, newResponse())
+		_, err := sqrl.Verify(transaction, nil, newResponse())
 		assert.Equal(t, sqrl.ErrInvalidIDSig, err)
 	})
 
-	t.Run("ReturnsNoErrorForAValidRequest", func(t *testing.T) {
+	t.Run("ReturnsParsedClientForAValidRequest", func(t *testing.T) {
 		transaction := &sqrl.Transaction{
 			Client:   validClient,
 			Server:   validServer,
@@ -59,8 +60,9 @@ func TestVerifyFirstTransaction(t *testing.T) {
 			ClientIP: "10.0.0.1",
 		}
 
-		err := sqrl.Verify(transaction, nil, newResponse())
+		gotClient, err := sqrl.Verify(transaction, nil, newResponse())
 		assert.NoError(t, err)
+		assert.Equal(t, *c, *gotClient)
 	})
 }
 

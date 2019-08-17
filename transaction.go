@@ -11,6 +11,7 @@ var (
 )
 
 type Transaction struct {
+	Nut    Nut
 	Client string
 	Server string
 	Ids    Signature
@@ -27,28 +28,28 @@ type Transaction struct {
 //
 // If an error is encoutered, the precise error will be returned and the
 // correct transaction information flags will be set on the response.
-func Verify(t *Transaction, prev *Transaction, response *ServerMsg) error {
+func Verify(t *Transaction, prev *Transaction, response *ServerMsg) (*ClientMsg, error) {
 	client, errc := ParseClient(t.Client)
 	if errc != nil {
 		response.Tif = response.Tif | TIFCommandFailed | TIFClientFailure
-		return errors.New("invalid client param")
+		return nil, errors.New("invalid client param")
 	}
 	serverOK := verifyServer(t.Server, prev)
 	if !serverOK {
 		response.Tif = response.Tif | TIFCommandFailed | TIFClientFailure
-		return errors.New("invalid server param")
+		return nil, errors.New("invalid server param")
 	}
 	signedPayload := t.Client + t.Server
 	if !t.Ids.Verify(client.Idk, signedPayload) {
 		response.Tif = response.Tif | TIFCommandFailed | TIFClientFailure
-		return ErrInvalidIDSig
+		return nil, ErrInvalidIDSig
 	}
 
 	// TODO: Verify IP Match
 
 	// TODO: Verify IDK Match
 
-	return nil
+	return client, nil
 }
 
 func verifyServer(serverRaw string, prev *Transaction) bool {
